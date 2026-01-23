@@ -1,0 +1,94 @@
+# =============================================================================
+# Claude Code Base - Project Configuration
+# =============================================================================
+#
+# This file links the project to Archon for task and document management.
+# Update the placeholder values below when setting up a new project.
+#
+# See: docs/archon-integration.md for full documentation
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# ARCHON PROJECT LINK
+# -----------------------------------------------------------------------------
+# The Archon project ID that tracks tasks and documents for this codebase.
+# Get this from: manage_project("create", title="Your Project")
+# Or find existing: find_projects(query="your project")
+archon_project_id: "[ARCHON_PROJECT_ID]"
+
+# Human-readable project name (should match Archon project title)
+project_title: "[PROJECT_TITLE]"
+
+# -----------------------------------------------------------------------------
+# REPOSITORY INFORMATION
+# -----------------------------------------------------------------------------
+# GitHub repository URL (used for PR creation, issue linking)
+github_repo: "[GITHUB_REPO]"
+
+# Local filesystem path to the repository root
+local_path: "[LOCAL_PATH]"
+
+# Primary branch name (usually "main" or "master")
+default_branch: "main"
+
+# -----------------------------------------------------------------------------
+# TIMESTAMPS
+# -----------------------------------------------------------------------------
+# When this config was first created
+created_at: "[DATE]"
+
+# Last time this config was modified (update on changes)
+updated_at: "[DATE]"
+
+# -----------------------------------------------------------------------------
+# TASK MANAGEMENT
+# -----------------------------------------------------------------------------
+# Default assignee for new tasks created from this project
+# Options: "Claude Code", "User", or a specific name
+default_assignee: "Claude Code"
+
+# Task status workflow - tasks progress through these states
+task_status_flow:
+  - todo      # Not started
+  - doing     # In progress
+  - review    # Awaiting review/testing
+  - done      # Completed
+
+# Feature labels commonly used in this project
+# These help organize tasks by functional area
+feature_labels:
+  - core
+  - documentation
+  - testing
+  - infrastructure
+  - bugfix
+
+# -----------------------------------------------------------------------------
+# CONTEXT MANAGEMENT
+# -----------------------------------------------------------------------------
+# Files to load at session start (relative to project root)
+startup_context_files:
+  - ".claude/SESSION_KNOWLEDGE.md"
+  - ".claude/DEVELOPMENT_LOG.md"
+
+# Archon documents to check at session start
+archon_documents:
+  - "Architecture"
+  - "Session Context"
+
+# -----------------------------------------------------------------------------
+# DEVELOPMENT SETTINGS
+# -----------------------------------------------------------------------------
+# Primary programming languages used
+languages:
+  - python
+  - typescript
+
+# Testing command (run with: /test or automatically)
+test_command: "npm test"
+
+# Lint command (run before commits)
+lint_command: "npm run lint"
+
+# Build command
+build_command: "npm run build"

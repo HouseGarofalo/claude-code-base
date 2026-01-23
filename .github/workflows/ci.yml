@@ -1,0 +1,136 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  validate:
+    name: Validate Repository
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate JSON files
+        run: |
+          echo "Validating JSON files..."
+          find . -name "*.json" -type f | while read file; do
+            echo "Checking: $file"
+            python3 -m json.tool "$file" > /dev/null || { echo "Invalid JSON: $file"; exit 1; }
+          done
+          echo "All JSON files are valid"
+
+      - name: Validate YAML files
+        run: |
+          echo "Validating YAML files..."
+          pip install yamllint
+          yamllint -d relaxed . || true
+
+      - name: Check for broken symlinks
+        run: |
+          echo "Checking for broken symlinks..."
+          find . -xtype l -print | tee broken_links.txt
+          if [ -s broken_links.txt ]; then
+            echo "Warning: Found broken symlinks"
+            cat broken_links.txt
+          fi
+
+      - name: Validate markdown files
+        run: |
+          echo "Checking markdown files exist..."
+          if [ ! -f "README.md" ]; then
+            echo "Warning: README.md not found"
+          fi
+
+      - name: Check file permissions
+        run: |
+          echo "Checking for files with execute permissions..."
+          find . -type f -perm /111 -name "*.md" -o -type f -perm /111 -name "*.json" | head -20
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Run pre-commit hooks
+        run: |
+          if [ -f ".pre-commit-config.yaml" ]; then
+            pre-commit run --all-files || true
+          else
+            echo "No pre-commit config found, skipping"
+          fi
+
+  structure:
+    name: Validate Structure
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check required directories
+        run: |
+          echo "Checking directory structure..."
+
+          REQUIRED_DIRS=(".claude" "scripts")
+          for dir in "${REQUIRED_DIRS[@]}"; do
+            if [ -d "$dir" ]; then
+              echo "Found: $dir"
+            else
+              echo "Note: $dir not found"
+            fi
+          done
+
+      - name: Check required files
+        run: |
+          echo "Checking required files..."
+
+          REQUIRED_FILES=("CLAUDE.md" "README.md")
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ -f "$file" ]; then
+              echo "Found: $file"
+            else
+              echo "Warning: $file not found"
+            fi
+          done
+
+      - name: Validate CLAUDE.md format
+        run: |
+          if [ -f "CLAUDE.md" ]; then
+            echo "Validating CLAUDE.md..."
+
+            # Check for required sections
+            if grep -q "# " CLAUDE.md; then
+              echo "CLAUDE.md has headers"
+            else
+              echo "Warning: CLAUDE.md may be missing headers"
+            fi
+
+            # Check file size
+            SIZE=$(wc -c < CLAUDE.md)
+            echo "CLAUDE.md size: $SIZE bytes"
+
+            if [ "$SIZE" -gt 50000 ]; then
+              echo "Warning: CLAUDE.md is quite large ($SIZE bytes)"
+            fi
+          fi

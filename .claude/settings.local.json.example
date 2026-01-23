@@ -1,0 +1,53 @@
+{
+  // =============================================================================
+  // LOCAL SETTINGS OVERRIDE EXAMPLE
+  // =============================================================================
+  //
+  // This file shows how to create local overrides for project settings.
+  //
+  // TO USE:
+  // 1. Copy this file to: .claude/settings.local.json
+  // 2. Modify the settings you want to override
+  // 3. The .local.json file is gitignored and won't be committed
+  //
+  // Settings in settings.local.json take precedence over settings.json
+  // =============================================================================
+
+  // Example: Override allowed tools for local development
+  "allowedTools": [
+    "Bash",
+    "Read",
+    "Write",
+    "Glob",
+    "Grep"
+  ],
+
+  // Example: Add local-only permissions
+  "permissions": {
+    "allow": [
+      "npm run dev",
+      "npm test",
+      "docker compose up"
+    ],
+    "deny": []
+  },
+
+  // Example: Override context files for local work
+  "contextFiles": [
+    "CLAUDE.md",
+    ".claude/SESSION_KNOWLEDGE.md",
+    ".claude/context/local-notes.md"
+  ],
+
+  // Example: Disable command confirmation for faster iteration
+  // WARNING: Only use this if you trust all suggested commands
+  "confirmCommands": false,
+
+  // Example: Connect to local MCP servers
+  "mcpServers": {
+    "local-database": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sqlite", "./dev.db"]
+    }
+  }
+}
