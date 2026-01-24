@@ -32,6 +32,45 @@ Slash commands are shortcuts that trigger specific Claude Code behaviors. When y
 | `/prp-plan` | Create implementation plan from a PRD | `prp-plan.md` |
 | `/prp-implement` | Execute an implementation plan | `prp-implement.md` |
 
+### Git Commands
+
+| Command | Description | File |
+|---------|-------------|------|
+| `/git-commit` | Create a well-structured commit using Conventional Commits | `git-commit.md` |
+| `/git-branch` | Manage git branches - create, switch, delete, list, cleanup | `git-branch.md` |
+| `/git-diff` | View differences between commits, branches, or working directory | `git-diff.md` |
+| `/git-sync` | Synchronize local repository with remote - push, pull, fetch | `git-sync.md` |
+
+### Code Commands
+
+| Command | Description | File |
+|---------|-------------|------|
+| `/fix` | Analyze and fix bugs and errors in code | `fix.md` |
+| `/explain` | Explain code in detail with documentation | `explain.md` |
+| `/convert` | Convert code from one language/framework to another | `convert.md` |
+| `/document` | Add documentation and comments to code | `document.md` |
+| `/optimize` | Optimize code for better performance | `optimize.md` |
+| `/refactor` | Refactor code for readability/maintainability | `refactor.md` |
+| `/generate-tests` | Generate comprehensive unit tests for code | `generate-tests.md` |
+| `/review` | Perform comprehensive code review | `review.md` |
+
+### GitHub Commands
+
+| Command | Description | File |
+|---------|-------------|------|
+| `/pr-create` | Create a GitHub Pull Request with proper description | `pr-create.md` |
+| `/pr-review` | Review a GitHub Pull Request - analyze and provide feedback | `pr-review.md` |
+| `/issue-create` | Create a GitHub issue with proper formatting and labels | `issue-create.md` |
+| `/actions-status` | Check GitHub Actions status for the repository | `actions-status.md` |
+
+### Research Commands
+
+| Command | Description | File |
+|---------|-------------|------|
+| `/research` | Search Archon knowledge base for documentation and examples | `research.md` |
+| `/technology-research` | Research a technology/pattern for implementation planning | `technology-research.md` |
+| `/security-review` | Perform security review and identify vulnerabilities | `security-review.md` |
+
 ## Quick Start Workflow
 
 1. **New Project Setup:**
@@ -53,6 +92,23 @@ Slash commands are shortcuts that trigger specific Claude Code behaviors. When y
    /prp-prd        # Document the feature requirements
    /prp-plan       # Create implementation plan
    /prp-implement  # Execute the plan with validation
+   ```
+
+4. **Git Workflow:**
+   ```
+   /git-branch create feat/my-feature  # Create feature branch
+   [make changes]
+   /git-commit                         # Commit with conventional format
+   /pr-create                          # Create pull request
+   /pr-review 123                      # Review a PR
+   ```
+
+5. **Code Quality:**
+   ```
+   /review                # Review current changes
+   /security-review       # Check for security issues
+   /generate-tests        # Create tests for code
+   /refactor              # Improve code quality
    ```
 
 ## Creating a Command
