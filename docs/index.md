@@ -34,6 +34,13 @@ Welcome to the Claude Code Base documentation. This template provides a producti
 | [MCP Dependencies](./mcp-dependencies.md) | MCP server setup and configuration |
 | [Architecture](./architecture.md) | Template structure and components |
 
+### Deployment & Operations
+
+| Document | Description |
+|----------|-------------|
+| [Deployment Guide](./deployment.md) | Deploy template, skills, and CI/CD integration |
+| [Contributing Guide](./contributing.md) | How to contribute skills, commands, and scripts |
+
 ### Standards & Migration
 
 | Document | Description |
@@ -52,6 +59,8 @@ Welcome to the Claude Code Base documentation. This template provides a producti
 - **Add a new skill**: [Customization Guide > Skills](./claude-code-customization.md#adding-custom-skills)
 - **Configure MCP servers**: [MCP Dependencies](./mcp-dependencies.md)
 - **Sync to existing project**: [Getting Started > Syncing](./getting-started.md#syncing-to-existing-projects)
+- **Deploy skills globally**: [Deployment Guide > Deploying Skills](./deployment.md#deploying-skills-globally)
+- **Contribute to the project**: [Contributing Guide](./contributing.md)
 
 ### Key Commands
 
