@@ -388,6 +388,7 @@ MCP SERVERS
    [ ] github        - GitHub API
    [ ] playwright    - Browser automation
    [ ] database      - Database operations
+   [ ] crawl4ai      - AI-ready web crawling & RAG
    [ ] Custom: [_______________]
 
 TESTING STRATEGY

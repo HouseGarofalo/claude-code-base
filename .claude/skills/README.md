@@ -1,6 +1,6 @@
 # Claude Code Skills Library
 
-A comprehensive collection of **164 skills** for Claude Code, providing specialized capabilities across cloud infrastructure, AI/ML, frontend/backend development, testing, DevOps, smart home automation, and more.
+A comprehensive collection of **165 skills** for Claude Code, providing specialized capabilities across cloud infrastructure, AI/ML, frontend/backend development, testing, DevOps, smart home automation, web scraping, and more.
 
 **Last Updated:** 2026-02-02
 
@@ -261,6 +261,12 @@ Autonomous development harness system:
 | [harness-tester](./harness-tester/) | Testing orchestrator with Playwright support |
 | [harness-wizard](./harness-wizard/) | Interactive setup wizard for harness projects |
 
+### Web Scraping & Data Extraction (1 skill)
+
+| Skill | Description |
+|-------|-------------|
+| [crawl4ai](./crawl4ai/) | AI-ready web crawling with markdown conversion, LLM extraction, and RAG integration |
+
 ### Utilities & Documentation (15 skills)
 
 | Skill | Description |
@@ -414,8 +420,9 @@ User: "Use the security-auditor-agent skill to review this code"
 | Contextual Modes | 14 |
 | Microsoft | 3 |
 | Harness Skills | 6 |
+| Web Scraping & Data Extraction | 1 |
 | Utilities & Documentation | 15 |
-| **Total** | **164** |
+| **Total** | **165** |
 
 ---
 
