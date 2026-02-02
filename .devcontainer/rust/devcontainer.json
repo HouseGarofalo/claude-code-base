@@ -1,0 +1,48 @@
+{
+  "name": "Rust Development",
+  "image": "mcr.microsoft.com/devcontainers/rust:1",
+
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropics.claude-code",
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml",
+        "vadimcn.vscode-lldb",
+        "serayuzgur.crates",
+        "humao.rest-client",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "rust-analyzer.checkOnSave.command": "clippy",
+        "editor.formatOnSave": true,
+        "[rust]": {
+          "editor.defaultFormatter": "rust-lang.rust-analyzer"
+        }
+      }
+    }
+  },
+
+  "forwardPorts": [8080],
+  "portsAttributes": {
+    "8080": {
+      "label": "App Server",
+      "onAutoForward": "notify"
+    }
+  },
+
+  "postCreateCommand": "cargo build 2>/dev/null || echo 'No Cargo project found'",
+
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "8gb",
+    "storage": "32gb"
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "name": "Go Development",
+  "image": "mcr.microsoft.com/devcontainers/go:1.22",
+
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropics.claude-code",
+        "golang.go",
+        "mtxr.sqltools",
+        "mtxr.sqltools-driver-pg",
+        "humao.rest-client",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "go.useLanguageServer": true,
+        "go.lintTool": "golangci-lint",
+        "go.formatTool": "gofmt",
+        "editor.formatOnSave": true,
+        "[go]": {
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+          }
+        }
+      }
+    }
+  },
+
+  "forwardPorts": [8080, 5432],
+  "portsAttributes": {
+    "8080": {
+      "label": "App Server",
+      "onAutoForward": "notify"
+    },
+    "5432": {
+      "label": "PostgreSQL",
+      "onAutoForward": "silent"
+    }
+  },
+
+  "postCreateCommand": "go mod download 2>/dev/null || echo 'No Go module found'",
+
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "8gb",
+    "storage": "32gb"
+  }
+}

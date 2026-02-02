@@ -1,0 +1,60 @@
+{
+  "name": ".NET Development",
+  "image": "mcr.microsoft.com/devcontainers/dotnet:8.0",
+
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropics.claude-code",
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.vscode-dotnet-runtime",
+        "kreativ-software.csharpextensions",
+        "jchannon.csharpextensions",
+        "mtxr.sqltools",
+        "mtxr.sqltools-driver-mssql",
+        "humao.rest-client",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "omnisharp.enableRoslynAnalyzers": true,
+        "omnisharp.enableEditorConfigSupport": true,
+        "editor.formatOnSave": true,
+        "files.trimTrailingWhitespace": true
+      }
+    }
+  },
+
+  "forwardPorts": [5000, 5001, 1433],
+  "portsAttributes": {
+    "5000": {
+      "label": "HTTP",
+      "onAutoForward": "notify"
+    },
+    "5001": {
+      "label": "HTTPS",
+      "onAutoForward": "notify"
+    },
+    "1433": {
+      "label": "SQL Server",
+      "onAutoForward": "silent"
+    }
+  },
+
+  "postCreateCommand": "dotnet restore || echo 'No .NET project found'",
+
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "16gb",
+    "storage": "32gb"
+  }
+}

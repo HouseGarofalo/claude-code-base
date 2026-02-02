@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Claude Code Base Template Manifest",
+  "description": "Defines which files to copy when creating a new project from this template",
+  "version": "1.0.0",
+
+  "include": [
+    ".claude/",
+    ".vscode/",
+    "docs/",
+    "PRPs/",
+    "scripts/",
+    "templates/",
+    ".gitignore",
+    ".gitattributes",
+    ".pre-commit-config.yaml",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "CODEOWNERS",
+    "LICENSE"
+  ],
+
+  "exclude": [
+    ".git/",
+    "node_modules/",
+    "__pycache__/",
+    ".venv/",
+    "venv/",
+    ".env",
+    ".env.*",
+    "!.env.example",
+    "*.log",
+    "*.tmp",
+    "temp/",
+    "bin/",
+    "obj/",
+    "dist/",
+    "build/",
+    "coverage/",
+    ".nyc_output/"
+  ],
+
+  "customize": {
+    "README.md": {
+      "action": "replace",
+      "source": "templates/readme/{{PROJECT_TYPE}}.md",
+      "variables": [
+        "{{PROJECT_NAME}}",
+        "{{PROJECT_DESCRIPTION}}",
+        "{{ORG}}"
+      ]
+    },
+    "CODEOWNERS": {
+      "action": "update",
+      "replacements": {
+        "@HouseGarofalo/maintainers": "@{{ORG}}/maintainers"
+      }
+    },
+    "CLAUDE.md": {
+      "action": "keep",
+      "note": "Keep base instructions, customize as needed"
+    }
+  },
+
+  "postCopy": {
+    "gitInit": true,
+    "preCommitInstall": true,
+    "createGitHubRepo": true,
+    "createArchonProject": true
+  },
+
+  "projectTypes": {
+    "web-frontend": {
+      "description": "React, Vue, Angular, or other frontend framework",
+      "additionalGitignore": "templates/gitignore/node.gitignore",
+      "readme": "templates/readme/web-frontend.md"
+    },
+    "backend-api": {
+      "description": "Node.js, Python, .NET, or other backend framework",
+      "additionalGitignore": "auto-detect",
+      "readme": "templates/readme/backend-api.md"
+    },
+    "fullstack": {
+      "description": "Combined frontend and backend application",
+      "additionalGitignore": "templates/gitignore/node.gitignore",
+      "readme": "templates/readme/fullstack.md"
+    },
+    "cli-library": {
+      "description": "CLI tools or reusable packages/libraries",
+      "additionalGitignore": "auto-detect",
+      "readme": "templates/readme/cli-library.md"
+    },
+    "infrastructure": {
+      "description": "Terraform, Docker, Kubernetes, or other IaC",
+      "additionalGitignore": null,
+      "readme": "templates/readme/infrastructure.md"
+    }
+  },
+
+  "languages": {
+    "javascript": {
+      "gitignore": "templates/gitignore/node.gitignore"
+    },
+    "typescript": {
+      "gitignore": "templates/gitignore/node.gitignore"
+    },
+    "python": {
+      "gitignore": "templates/gitignore/python.gitignore"
+    },
+    "csharp": {
+      "gitignore": "templates/gitignore/dotnet.gitignore"
+    },
+    "go": {
+      "gitignore": "templates/gitignore/go.gitignore"
+    },
+    "java": {
+      "gitignore": "templates/gitignore/java.gitignore"
+    }
+  }
+}

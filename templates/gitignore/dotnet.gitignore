@@ -1,0 +1,117 @@
+# .NET - Additional Patterns
+# Append these to the base .gitignore for .NET/C# projects
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.cache
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# User-specific files
+*.rsuser
+*.user
+*.userosscache
+*.sln.docstates
+
+# MSTest results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
+# NUnit
+*.VisualState.xml
+TestResult.xml
+nunit-*.xml
+
+# Coverage
+coverage*/
+*.coverage
+*.coveragexml
+
+# NCrunch
+_NCrunch_*
+.*crunch*.local.xml
+nCrunchTemp_*
+
+# Rider
+.idea/
+*.sln.iml
+
+# dotCover
+*.dotCover
+
+# AxoCover
+.axoCover/*
+!.axoCover/settings.json
+
+# Coverlet
+coverage*.json
+coverage*.xml
+coverage*.info
+
+# Publish
+*.Publish.xml
+*.azurePubxml
+*.pubxml
+*.publishproj
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+project.assets.json
+*.nuget.props
+*.nuget.targets
+
+# Web workbench
+.sass-cache/
+
+# Stores
+[Ee]xpress/
+
+# DocProject
+DocProject/buildhelp/
+DocProject/Help/*.HxT
+DocProject/Help/*.HxC
+DocProject/Help/*.hhc
+DocProject/Help/*.hhk
+DocProject/Help/*.hhp
+DocProject/Help/Html2
+DocProject/Help/html
+
+# Click-Once
+publish/
+
+# Paket
+.paket/paket.exe
+paket-files/
+
+# FAKE
+.fake/
+
+# JetBrains Rider
+*.sln.iml
+
+# CodeRush
+.cr/

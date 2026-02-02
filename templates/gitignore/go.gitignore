@@ -1,0 +1,72 @@
+# Go - Additional Patterns
+# Append these to the base .gitignore for Go projects
+
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output of go coverage
+*.out
+coverage.txt
+coverage.html
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Vendor directory
+# vendor/  # Uncomment to ignore vendor
+
+# Go build cache (usually in user home)
+# If you need project-specific cache:
+.cache/
+
+# Air live reload
+tmp/
+
+# Delve debugger
+__debug_bin
+
+# GoLand
+.idea/
+
+# Go module cache (local)
+pkg/
+
+# goreleaser
+dist/
+
+# Generated files
+*_gen.go
+*.pb.go
+*_string.go
+
+# Mocks
+*_mock.go
+mocks/
+
+# Wire
+wire_gen.go
+
+# Swag
+docs/swagger.json
+docs/swagger.yaml
+docs/docs.go
+
+# golangci-lint
+.golangci-lint
+
+# Air
+tmp/
+
+# Profiling
+*.prof
+*.pprof
+cpu.out
+mem.out

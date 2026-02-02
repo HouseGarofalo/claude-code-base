@@ -1,0 +1,55 @@
+{
+  "name": "Data Science Development",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropics.claude-code",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-toolsai.jupyter",
+        "ms-toolsai.jupyter-keymap",
+        "ms-toolsai.jupyter-renderers",
+        "charliermarsh.ruff",
+        "mechatroner.rainbow-csv",
+        "RandomFractalsInc.vscode-data-preview",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.formatOnSave": true
+        },
+        "jupyter.askForKernelRestart": false,
+        "notebook.cellToolbarLocation": {
+          "default": "right"
+        }
+      }
+    }
+  },
+
+  "forwardPorts": [8888],
+  "portsAttributes": {
+    "8888": {
+      "label": "Jupyter",
+      "onAutoForward": "notify"
+    }
+  },
+
+  "postCreateCommand": "pip install pandas numpy matplotlib seaborn scikit-learn jupyter jupyterlab",
+
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "16gb",
+    "storage": "32gb"
+  }
+}

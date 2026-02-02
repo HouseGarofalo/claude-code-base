@@ -1,0 +1,62 @@
+{
+  "name": "Web Frontend Development",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:20",
+
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropics.claude-code",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "bradlc.vscode-tailwindcss",
+        "styled-components.vscode-styled-components",
+        "formulahendry.auto-rename-tag",
+        "christian-kohler.path-intellisense",
+        "eamodio.gitlens",
+        "ms-playwright.playwright"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.tabSize": 2,
+        "typescript.preferences.importModuleSpecifier": "relative",
+        "emmet.includeLanguages": {
+          "javascript": "javascriptreact",
+          "typescript": "typescriptreact"
+        },
+        "tailwindCSS.emmetCompletions": true
+      }
+    }
+  },
+
+  "forwardPorts": [3000, 5173, 6006],
+  "portsAttributes": {
+    "3000": {
+      "label": "App",
+      "onAutoForward": "notify"
+    },
+    "5173": {
+      "label": "Vite Dev",
+      "onAutoForward": "notify"
+    },
+    "6006": {
+      "label": "Storybook",
+      "onAutoForward": "notify"
+    }
+  },
+
+  "postCreateCommand": "npm install 2>/dev/null || echo 'No package.json found'",
+
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "8gb",
+    "storage": "32gb"
+  }
+}

@@ -1,0 +1,97 @@
+# Node.js - Additional Patterns
+# Append these to the base .gitignore for Node.js/TypeScript projects
+
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+.output/
+.svelte-kit/
+
+# Testing
+coverage/
+.nyc_output/
+*.lcov
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Runtime
+.node_repl_history
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Optional npm cache
+.npm/
+
+# Optional REPL history
+.node_repl_history
+
+# Yarn v2+
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+
+# TypeScript
+*.tsbuildinfo
+*.d.ts.map
+
+# Storybook
+storybook-static/
+
+# Turbo
+.turbo/
+
+# Parcel
+.cache/
+.parcel-cache/
+
+# ESLint
+.eslintcache
+
+# Stylelint
+.stylelintcache
+
+# Prettier
+.prettiercache
+
+# Serverless
+.serverless/
+
+# Vercel
+.vercel/
+
+# Netlify
+.netlify/
+
+# Environment - keep .env.example
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
+
+# IDE/Editor specific (should also be in global gitignore)
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
