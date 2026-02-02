@@ -1,0 +1,288 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Autonomous Agent Harness Configuration Template",
+
+  "harness": {
+    "version": "1.0",
+    "created": "TIMESTAMP",
+    "updated": "TIMESTAMP",
+    "project_id": "ARCHON_PROJECT_ID",
+    "project_name": "PROJECT_NAME"
+  },
+
+  "agents": {
+    "initializer": {
+      "enabled": true,
+      "model": "claude-sonnet-4-20250514",
+      "prompt_file": ".harness/INITIALIZER_PROMPT.md",
+      "description": "Parses application spec, generates 20-50 detailed tasks",
+      "capabilities": [
+        "spec_parsing",
+        "task_generation",
+        "priority_assignment",
+        "dependency_mapping"
+      ],
+      "max_tasks": 50,
+      "task_format": {
+        "title_prefix": "[INIT]",
+        "include_acceptance_criteria": true,
+        "include_technical_notes": true
+      }
+    },
+    "coder": {
+      "enabled": true,
+      "model": "claude-sonnet-4-20250514",
+      "prompt_file": ".harness/CODER_PROMPT.md",
+      "description": "Implements features based on tasks",
+      "capabilities": [
+        "code_generation",
+        "file_management",
+        "refactoring",
+        "documentation"
+      ],
+      "constraints": {
+        "max_files_per_task": 10,
+        "require_tests": true,
+        "follow_style_guide": true
+      }
+    },
+    "tester": {
+      "enabled": true,
+      "model": "claude-sonnet-4-20250514",
+      "prompt_file": ".harness/TESTER_PROMPT.md",
+      "description": "Writes and runs tests for implementations",
+      "capabilities": [
+        "unit_testing",
+        "integration_testing",
+        "test_coverage_analysis",
+        "bug_identification"
+      ],
+      "test_config": {
+        "min_coverage": 80,
+        "test_framework": "auto",
+        "include_edge_cases": true
+      }
+    },
+    "reviewer": {
+      "enabled": false,
+      "model": "claude-sonnet-4-20250514",
+      "prompt_file": ".harness/REVIEWER_PROMPT.md",
+      "description": "Reviews code for quality, security, and best practices",
+      "capabilities": [
+        "code_review",
+        "security_audit",
+        "performance_analysis",
+        "style_compliance"
+      ],
+      "review_criteria": {
+        "check_security": true,
+        "check_performance": true,
+        "check_maintainability": true,
+        "require_documentation": true
+      }
+    },
+    "documenter": {
+      "enabled": false,
+      "model": "claude-sonnet-4-20250514",
+      "prompt_file": ".harness/DOCUMENTER_PROMPT.md",
+      "description": "Generates documentation for code and APIs",
+      "capabilities": [
+        "api_documentation",
+        "readme_generation",
+        "inline_comments",
+        "architecture_docs"
+      ]
+    }
+  },
+
+  "limits": {
+    "max_tasks": 50,
+    "iteration_limit": 50,
+    "session_timeout_minutes": 120,
+    "max_retries_per_task": 3,
+    "max_concurrent_tasks": 1
+  },
+
+  "task_generation": {
+    "granularity": "medium",
+    "granularity_options": {
+      "coarse": {
+        "description": "Large tasks, fewer total",
+        "task_range": [10, 20],
+        "avg_task_duration": "2-4 hours"
+      },
+      "medium": {
+        "description": "Balanced tasks",
+        "task_range": [20, 40],
+        "avg_task_duration": "1-2 hours"
+      },
+      "fine": {
+        "description": "Small tasks, more total",
+        "task_range": [40, 70],
+        "avg_task_duration": "30-60 minutes"
+      }
+    },
+    "default_priority": "medium",
+    "auto_dependency_detection": true,
+    "feature_grouping": true
+  },
+
+  "mcp_servers": {
+    "required": [
+      {
+        "name": "filesystem",
+        "description": "File operations",
+        "required_permissions": ["read", "write", "delete"]
+      },
+      {
+        "name": "git",
+        "description": "Version control",
+        "required_permissions": ["commit", "branch", "push"]
+      }
+    ],
+    "optional": [
+      {
+        "name": "github",
+        "description": "GitHub API integration",
+        "when": "github_repo_enabled"
+      },
+      {
+        "name": "playwright",
+        "description": "Browser automation for E2E tests",
+        "when": "browser_testing_enabled"
+      },
+      {
+        "name": "database",
+        "description": "Database operations",
+        "when": "database_enabled"
+      }
+    ],
+    "custom": []
+  },
+
+  "testing": {
+    "strategy": "unit_integration",
+    "strategies": {
+      "unit_only": {
+        "description": "Fast feedback, unit tests only",
+        "includes": ["unit"]
+      },
+      "unit_integration": {
+        "description": "Balanced coverage",
+        "includes": ["unit", "integration"]
+      },
+      "comprehensive": {
+        "description": "Full test suite",
+        "includes": ["unit", "integration", "e2e", "performance"]
+      }
+    },
+    "browser_tool": "playwright",
+    "browser_tool_options": ["playwright", "puppeteer", "none"],
+    "auto_run_tests": true,
+    "fail_fast": true,
+    "coverage_reporting": true
+  },
+
+  "security": {
+    "allowed_commands": [
+      "npm", "npx", "node", "yarn", "pnpm", "bun",
+      "python", "pip", "uv", "poetry",
+      "git", "gh",
+      "ls", "cat", "mkdir", "rm", "cp", "mv", "touch",
+      "curl", "wget",
+      "docker", "docker-compose"
+    ],
+    "blocked_commands": [
+      "sudo", "su", "chmod 777", "rm -rf /",
+      "curl | sh", "wget | sh"
+    ],
+    "fs_restrictions": "project_only",
+    "fs_restriction_options": {
+      "project_only": {
+        "description": "Only access project directory",
+        "paths": ["./"]
+      },
+      "project_home": {
+        "description": "Project + home directory",
+        "paths": ["./", "~/"]
+      },
+      "unrestricted": {
+        "description": "No restrictions (use with caution)",
+        "paths": ["*"],
+        "warning": "Security risk - only use in isolated environments"
+      }
+    },
+    "secrets_handling": {
+      "scan_for_secrets": true,
+      "block_secret_commits": true,
+      "allowed_env_files": [".env.example", ".env.template"]
+    }
+  },
+
+  "session": {
+    "handoff_enabled": true,
+    "state_persistence": "archon",
+    "checkpoint_frequency": "per_task",
+    "recovery_mode": "resume_last_task",
+    "logging": {
+      "level": "info",
+      "log_file": ".harness/logs/session.log",
+      "include_agent_output": true
+    }
+  },
+
+  "output": {
+    "commit_style": "conventional",
+    "commit_styles": {
+      "conventional": "feat(scope): description",
+      "simple": "Add feature: description",
+      "detailed": "Full description with body"
+    },
+    "branch_naming": "feature/{task-id}-{description}",
+    "pr_template": ".github/PULL_REQUEST_TEMPLATE.md",
+    "auto_commit": false,
+    "auto_push": false
+  },
+
+  "integrations": {
+    "archon": {
+      "enabled": true,
+      "project_id": "ARCHON_PROJECT_ID",
+      "sync_tasks": true,
+      "update_status": true,
+      "create_documents": true
+    },
+    "github": {
+      "enabled": false,
+      "repo": "",
+      "auto_pr": false,
+      "auto_issue_link": true
+    },
+    "slack": {
+      "enabled": false,
+      "webhook_url": "",
+      "notify_on": ["task_complete", "error", "session_end"]
+    }
+  },
+
+  "templates": {
+    "task": {
+      "title_format": "[{priority}] {description}",
+      "required_fields": ["description", "acceptance_criteria"],
+      "optional_fields": ["technical_notes", "dependencies", "estimated_time"]
+    },
+    "commit": {
+      "format": "{type}({scope}): {description}\n\n{body}\n\nTask: {task_id}\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>",
+      "types": ["feat", "fix", "refactor", "test", "docs", "chore"]
+    }
+  },
+
+  "metadata": {
+    "created_by": "project-wizard",
+    "wizard_version": "1.0",
+    "config_version": "1.0",
+    "last_session": null,
+    "total_sessions": 0,
+    "tasks_completed": 0
+  }
+}
