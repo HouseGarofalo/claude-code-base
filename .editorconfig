@@ -1,0 +1,102 @@
+# EditorConfig for Claude Code Base Project
+# https://editorconfig.org
+
+# Top-most EditorConfig file
+root = true
+
+# Default settings for all files
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# JavaScript, TypeScript, JSON, YAML - 2 spaces
+[*.{js,jsx,ts,tsx,mjs,cjs}]
+indent_size = 2
+
+[*.{json,jsonc}]
+indent_size = 2
+
+[*.{yml,yaml}]
+indent_size = 2
+
+# Python - 4 spaces (PEP 8)
+[*.py]
+indent_size = 4
+
+# Markdown - preserve trailing whitespace for line breaks
+[*.md]
+trim_trailing_whitespace = false
+
+# Shell scripts
+[*.sh]
+end_of_line = lf
+indent_size = 2
+
+# Windows batch files - CRLF line endings
+[*.{bat,cmd}]
+end_of_line = crlf
+indent_size = 4
+
+# PowerShell - CRLF line endings
+[*.{ps1,psm1,psd1}]
+end_of_line = crlf
+indent_size = 4
+
+# Makefiles require tabs
+[Makefile]
+indent_style = tab
+
+[*.mk]
+indent_style = tab
+
+# justfile uses tabs
+[justfile]
+indent_style = tab
+
+# Configuration files
+[*.{toml,ini,cfg}]
+indent_size = 2
+
+# XML and HTML
+[*.{xml,html,htm,xhtml}]
+indent_size = 2
+
+# CSS and preprocessors
+[*.{css,scss,sass,less}]
+indent_size = 2
+
+# Dockerfile
+[Dockerfile*]
+indent_size = 2
+
+# Go - tabs per convention
+[*.go]
+indent_style = tab
+
+# Rust - 4 spaces per convention
+[*.rs]
+indent_size = 4
+
+# C/C++ - 4 spaces
+[*.{c,cpp,h,hpp}]
+indent_size = 4
+
+# Java - 4 spaces
+[*.java]
+indent_size = 4
+
+# EditorConfig files
+[.editorconfig]
+indent_size = 2
+
+# Git config files
+[.git*]
+indent_size = 2
+
+# VS Code settings
+[.vscode/*.json]
+indent_size = 2

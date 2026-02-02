@@ -1,0 +1,250 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Validate Project",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/scripts/validate-claude-code.ps1"
+      ],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "problemMatcher": [],
+      "detail": "Run validation checks on the Claude Code project structure"
+    },
+    {
+      "label": "Setup New Project",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/scripts/setup-claude-code-project.ps1"
+      ],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "problemMatcher": [],
+      "detail": "Initialize a new project with Claude Code structure"
+    },
+    {
+      "label": "Sync Configuration",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/scripts/sync-claude-code.ps1"
+      ],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "problemMatcher": [],
+      "detail": "Sync Claude Code configuration across projects"
+    },
+    {
+      "label": "Deploy Skills",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/scripts/deploy-skills.ps1"
+      ],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "problemMatcher": [],
+      "detail": "Deploy skills to global ~/.claude/skills/ directory"
+    },
+    {
+      "label": "Deploy Skills (Dry Run)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/scripts/deploy-skills.ps1",
+        "-DryRun"
+      ],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "problemMatcher": [],
+      "detail": "Preview skill deployment without making changes"
+    },
+    {
+      "label": "Install MCP Servers",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/scripts/install-mcp-servers.ps1"
+      ],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "dedicated",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "problemMatcher": [],
+      "detail": "Install and configure common MCP servers"
+    },
+    {
+      "label": "Install Pre-commit Hooks",
+      "type": "shell",
+      "command": "pre-commit",
+      "args": ["install"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "problemMatcher": [],
+      "detail": "Install git pre-commit hooks from .pre-commit-config.yaml"
+    },
+    {
+      "label": "Run Pre-commit",
+      "type": "shell",
+      "command": "pre-commit",
+      "args": ["run", "--all-files"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "problemMatcher": [],
+      "detail": "Run all pre-commit hooks on all files"
+    },
+    {
+      "label": "Count Skills",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-Command",
+        "$skills = Get-ChildItem -Path '${workspaceFolder}/.claude/skills' -Filter 'SKILL.md' -Recurse -ErrorAction SilentlyContinue; Write-Host \"`nSkills found: $($skills.Count)`n\"; $skills | ForEach-Object { Write-Host \"  - $($_.Directory.Name)\" }"
+      ],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "problemMatcher": [],
+      "detail": "Count and list all skills in the project"
+    },
+    {
+      "label": "Count Commands",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-Command",
+        "$commands = Get-ChildItem -Path '${workspaceFolder}/.claude/commands' -Filter '*.md' -Recurse -ErrorAction SilentlyContinue; Write-Host \"`nCommands found: $($commands.Count)`n\"; $commands | ForEach-Object { Write-Host \"  - /$($_.BaseName)\" }"
+      ],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "problemMatcher": [],
+      "detail": "Count and list all slash commands in the project"
+    },
+    {
+      "label": "Git Status",
+      "type": "shell",
+      "command": "git",
+      "args": ["status"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "problemMatcher": [],
+      "detail": "Show git status"
+    },
+    {
+      "label": "List MCP Servers",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-Command",
+        "$mcp = Get-Content '${workspaceFolder}/.vscode/mcp.json' -Raw | ConvertFrom-Json; Write-Host \"`nConfigured MCP Servers:`n\"; $mcp.mcpServers.PSObject.Properties | ForEach-Object { Write-Host \"  - $($_.Name)\" }"
+      ],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "problemMatcher": [],
+      "detail": "List all configured MCP servers from mcp.json"
+    }
+  ]
+}
