@@ -1,0 +1,65 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/anthropic-cookbook/main/misc/mcp_config_schema.json",
+  "_comment": "Example MCP configuration for Crawl4AI server",
+
+  "mcpServers": {
+    "crawl4ai": {
+      "_comment": "Basic configuration using Python module",
+      "command": "python",
+      "args": ["-m", "src.crawl4ai_mcp_server"],
+      "cwd": "${workspaceFolder}/mcp-servers/crawl4ai-rag",
+      "env": {
+        "TRANSPORT": "stdio",
+        "HEADLESS": "true",
+        "BROWSER_TYPE": "chromium",
+        "MEAN_DELAY": "0.5",
+        "MAX_CONCURRENT": "5"
+      }
+    },
+
+    "crawl4ai-entry-point": {
+      "_comment": "Configuration using installed entry point (after pip install)",
+      "command": "crawl4ai-mcp",
+      "env": {
+        "TRANSPORT": "stdio",
+        "HEADLESS": "true"
+      }
+    },
+
+    "crawl4ai-docker": {
+      "_comment": "Configuration using Docker container",
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "--name", "crawl4ai-mcp",
+        "-e", "TRANSPORT=stdio",
+        "-e", "HEADLESS=true",
+        "crawl4ai-mcp:latest"
+      ]
+    },
+
+    "crawl4ai-with-rag": {
+      "_comment": "Configuration with RAG features enabled",
+      "command": "python",
+      "args": ["-m", "src.crawl4ai_mcp_server"],
+      "cwd": "${workspaceFolder}/mcp-servers/crawl4ai-rag",
+      "env": {
+        "TRANSPORT": "stdio",
+        "HEADLESS": "true",
+        "OPENAI_API_KEY": "${env:OPENAI_API_KEY}",
+        "SUPABASE_URL": "${env:SUPABASE_URL}",
+        "SUPABASE_SERVICE_KEY": "${env:SUPABASE_SERVICE_KEY}"
+      }
+    },
+
+    "crawl4ai-sse": {
+      "_comment": "Configuration for SSE transport (useful for debugging)",
+      "transport": {
+        "type": "sse",
+        "url": "http://localhost:8000/sse"
+      }
+    }
+  }
+}
