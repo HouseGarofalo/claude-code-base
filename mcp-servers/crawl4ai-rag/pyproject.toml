@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "crawl4ai-mcp-server"
-version = "1.0.0"
-description = "Crawl4AI MCP Server for Claude Code - Web crawling and RAG capabilities"
+version = "2.0.0"
+description = "Crawl4AI MCP Server for Claude Code - Web crawling with Vector RAG (Supabase) and Graph RAG (Neo4j)"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
@@ -18,6 +18,10 @@ keywords = [
     "crawl4ai",
     "web-crawling",
     "rag",
+    "graph-rag",
+    "neo4j",
+    "supabase",
+    "azure-openai",
     "claude",
     "ai-tools"
 ]
@@ -43,18 +47,29 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Vector RAG with Supabase and Azure OpenAI
 rag = [
     "supabase>=2.0.0",
-    "openai>=1.0.0",
+    "openai>=1.0.0",  # Azure OpenAI uses the openai package
 ]
+
+# Graph RAG with Neo4j
+graph = [
+    "neo4j>=5.0.0",
+]
+
+# Local embeddings (alternative to Azure OpenAI)
 embeddings = [
     "torch>=2.0.0",
     "transformers>=4.30.0",
     "sentence-transformers>=2.2.0",
 ]
+
+# Full installation with all RAG features
 all = [
-    "crawl4ai-mcp-server[rag,embeddings]",
+    "crawl4ai-mcp-server[rag,graph,embeddings]",
 ]
+
 dev = [
     "pytest>=7.0.0",
     "pytest-asyncio>=0.21.0",
@@ -77,7 +92,7 @@ crawl4ai-mcp = "src.crawl4ai_mcp_server:main"
 packages = ["src"]
 
 [tool.setuptools.package-data]
-"*" = ["*.md", "*.json", "*.yaml"]
+"*" = ["*.md", "*.json", "*.yaml", "*.cypher", "*.sql"]
 
 [tool.black]
 line-length = 100

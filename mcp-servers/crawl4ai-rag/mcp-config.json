@@ -1,10 +1,10 @@
 {
   "$schema": "https://raw.githubusercontent.com/anthropics/anthropic-cookbook/main/misc/mcp_config_schema.json",
-  "_comment": "Example MCP configuration for Crawl4AI server",
+  "_comment": "MCP configuration for Crawl4AI server v2.0 with Vector RAG and Graph RAG",
 
   "mcpServers": {
     "crawl4ai": {
-      "_comment": "Basic configuration using Python module",
+      "_comment": "Basic configuration - credentials auto-loaded from ~/.claude/.env",
       "command": "python",
       "args": ["-m", "src.crawl4ai_mcp_server"],
       "cwd": "${workspaceFolder}/mcp-servers/crawl4ai-rag",
@@ -18,7 +18,7 @@
     },
 
     "crawl4ai-entry-point": {
-      "_comment": "Configuration using installed entry point (after pip install)",
+      "_comment": "Using installed entry point (after pip install -e '.[all]')",
       "command": "crawl4ai-mcp",
       "env": {
         "TRANSPORT": "stdio",
@@ -27,7 +27,7 @@
     },
 
     "crawl4ai-docker": {
-      "_comment": "Configuration using Docker container",
+      "_comment": "Using Docker container (basic crawling)",
       "command": "docker",
       "args": [
         "run",
@@ -40,22 +40,75 @@
       ]
     },
 
-    "crawl4ai-with-rag": {
-      "_comment": "Configuration with RAG features enabled",
+    "crawl4ai-docker-full": {
+      "_comment": "Docker with full RAG support (Vector + Graph)",
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "--name", "crawl4ai-mcp-full",
+        "--network", "host",
+        "-v", "${env:USERPROFILE}/.claude/.env:/app/.env:ro",
+        "-e", "TRANSPORT=stdio",
+        "-e", "HEADLESS=true",
+        "crawl4ai-mcp:full"
+      ]
+    },
+
+    "crawl4ai-with-vector-rag": {
+      "_comment": "With Vector RAG only (Supabase + Azure OpenAI) - explicit env vars",
       "command": "python",
       "args": ["-m", "src.crawl4ai_mcp_server"],
       "cwd": "${workspaceFolder}/mcp-servers/crawl4ai-rag",
       "env": {
         "TRANSPORT": "stdio",
         "HEADLESS": "true",
-        "OPENAI_API_KEY": "${env:OPENAI_API_KEY}",
+        "AZURE_OPENAI_ENDPOINT": "${env:AZURE_OPENAI_ENDPOINT}",
+        "AZURE_OPENAI_API_KEY": "${env:AZURE_OPENAI_API_KEY}",
+        "AZURE_OPENAI_API_VERSION": "${env:AZURE_OPENAI_API_VERSION}",
+        "AZURE_EMBEDDING_DEPLOYMENT": "${env:AZURE_EMBEDDING_DEPLOYMENT}",
         "SUPABASE_URL": "${env:SUPABASE_URL}",
-        "SUPABASE_SERVICE_KEY": "${env:SUPABASE_SERVICE_KEY}"
+        "SUPABASE_SERVICE_ROLE_KEY": "${env:SUPABASE_SERVICE_ROLE_KEY}"
+      }
+    },
+
+    "crawl4ai-with-graph-rag": {
+      "_comment": "With Graph RAG only (Neo4j) - explicit env vars",
+      "command": "python",
+      "args": ["-m", "src.crawl4ai_mcp_server"],
+      "cwd": "${workspaceFolder}/mcp-servers/crawl4ai-rag",
+      "env": {
+        "TRANSPORT": "stdio",
+        "HEADLESS": "true",
+        "NEO4J_URI": "${env:NEO4J_URI}",
+        "NEO4J_USERNAME": "${env:NEO4J_USERNAME}",
+        "NEO4J_PASSWORD": "${env:NEO4J_PASSWORD}"
+      }
+    },
+
+    "crawl4ai-full-rag": {
+      "_comment": "Full RAG (Vector + Graph) - explicit env vars",
+      "command": "python",
+      "args": ["-m", "src.crawl4ai_mcp_server"],
+      "cwd": "${workspaceFolder}/mcp-servers/crawl4ai-rag",
+      "env": {
+        "TRANSPORT": "stdio",
+        "HEADLESS": "true",
+        "AZURE_OPENAI_ENDPOINT": "${env:AZURE_OPENAI_ENDPOINT}",
+        "AZURE_OPENAI_API_KEY": "${env:AZURE_OPENAI_API_KEY}",
+        "AZURE_OPENAI_API_VERSION": "${env:AZURE_OPENAI_API_VERSION}",
+        "AZURE_EMBEDDING_DEPLOYMENT": "${env:AZURE_EMBEDDING_DEPLOYMENT}",
+        "SUPABASE_URL": "${env:SUPABASE_URL}",
+        "SUPABASE_SERVICE_ROLE_KEY": "${env:SUPABASE_SERVICE_ROLE_KEY}",
+        "NEO4J_URI": "${env:NEO4J_URI}",
+        "NEO4J_USERNAME": "${env:NEO4J_USERNAME}",
+        "NEO4J_PASSWORD": "${env:NEO4J_PASSWORD}"
       }
     },
 
     "crawl4ai-sse": {
-      "_comment": "Configuration for SSE transport (useful for debugging)",
+      "_comment": "SSE transport for debugging - visit http://localhost:8000/sse",
       "transport": {
         "type": "sse",
         "url": "http://localhost:8000/sse"

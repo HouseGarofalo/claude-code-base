@@ -1,7 +1,8 @@
 -- =============================================================================
--- Supabase Setup for Crawl4AI RAG Features
+-- Supabase Setup for Crawl4AI RAG Features (v2.0)
 -- =============================================================================
 -- Run this SQL in your Supabase SQL Editor to enable RAG capabilities
+-- Compatible with Azure OpenAI text-embedding-3-small (1536 dimensions)
 -- =============================================================================
 
 -- Enable the pgvector extension for vector similarity search
@@ -16,7 +17,7 @@ CREATE TABLE IF NOT EXISTS crawled_content (
     url TEXT NOT NULL UNIQUE,
     title TEXT,
     content TEXT NOT NULL,
-    embedding vector(1536),  -- OpenAI text-embedding-3-small dimension
+    embedding vector(1536),  -- Azure OpenAI text-embedding-3-small dimension
     crawled_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     metadata JSONB DEFAULT '{}'::jsonb
@@ -25,17 +26,27 @@ CREATE TABLE IF NOT EXISTS crawled_content (
 -- Index for faster URL lookups
 CREATE INDEX IF NOT EXISTS idx_crawled_content_url ON crawled_content(url);
 
--- Index for vector similarity search
+-- Index for vector similarity search (using HNSW for better performance)
+-- Note: HNSW is faster for queries but slower for inserts
 CREATE INDEX IF NOT EXISTS idx_crawled_content_embedding ON crawled_content
-    USING ivfflat (embedding vector_cosine_ops)
-    WITH (lists = 100);
+    USING hnsw (embedding vector_cosine_ops)
+    WITH (m = 16, ef_construction = 64);
+
+-- Alternative: IVFFlat index (faster inserts, good for smaller datasets)
+-- CREATE INDEX IF NOT EXISTS idx_crawled_content_embedding ON crawled_content
+--     USING ivfflat (embedding vector_cosine_ops)
+--     WITH (lists = 100);
 
 -- Index for timestamp-based queries
 CREATE INDEX IF NOT EXISTS idx_crawled_content_crawled_at ON crawled_content(crawled_at DESC);
 
+-- Index for full-text search on title
+CREATE INDEX IF NOT EXISTS idx_crawled_content_title ON crawled_content USING gin(to_tsvector('english', coalesce(title, '')));
+
 -- -----------------------------------------------------------------------------
 -- Function: match_documents
 -- Semantic search function for finding similar content
+-- Compatible with the crawl4ai_mcp_server.py search_crawled_content tool
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION match_documents(
     query_embedding vector(1536),
@@ -62,7 +73,7 @@ BEGIN
     FROM crawled_content cc
     WHERE
         cc.embedding IS NOT NULL
-        AND (filter_url IS NULL OR cc.url LIKE '%' || filter_url || '%')
+        AND (filter_url IS NULL OR cc.url ILIKE '%' || filter_url || '%')
     ORDER BY cc.embedding <=> query_embedding
     LIMIT match_count;
 END;
@@ -71,6 +82,7 @@ $$;
 -- -----------------------------------------------------------------------------
 -- Function: upsert_crawled_content
 -- Insert or update crawled content with embedding
+-- Called by the MCP server's store_in_vector_db function
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION upsert_crawled_content(
     p_url TEXT,
@@ -122,6 +134,52 @@ AS $$
 $$;
 
 -- -----------------------------------------------------------------------------
+-- Function: search_by_domain
+-- Find all crawled content from a specific domain
+-- -----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION search_by_domain(
+    domain_pattern TEXT,
+    limit_count INT DEFAULT 20
+)
+RETURNS TABLE (
+    id BIGINT,
+    url TEXT,
+    title TEXT,
+    crawled_at TIMESTAMP WITH TIME ZONE
+)
+LANGUAGE sql
+AS $$
+    SELECT id, url, title, crawled_at
+    FROM crawled_content
+    WHERE url ILIKE '%' || domain_pattern || '%'
+    ORDER BY crawled_at DESC
+    LIMIT limit_count;
+$$;
+
+-- -----------------------------------------------------------------------------
+-- Function: get_stats
+-- Get statistics about the crawled content
+-- -----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION get_crawl_stats()
+RETURNS TABLE (
+    total_pages BIGINT,
+    pages_with_embeddings BIGINT,
+    unique_domains BIGINT,
+    oldest_crawl TIMESTAMP WITH TIME ZONE,
+    newest_crawl TIMESTAMP WITH TIME ZONE
+)
+LANGUAGE sql
+AS $$
+    SELECT
+        COUNT(*) as total_pages,
+        COUNT(embedding) as pages_with_embeddings,
+        COUNT(DISTINCT regexp_replace(url, '^https?://([^/]+).*', '\1')) as unique_domains,
+        MIN(crawled_at) as oldest_crawl,
+        MAX(crawled_at) as newest_crawl
+    FROM crawled_content;
+$$;
+
+-- -----------------------------------------------------------------------------
 -- Trigger: Update timestamp on modification
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -139,7 +197,7 @@ CREATE TRIGGER update_crawled_content_updated_at
     EXECUTE FUNCTION update_updated_at_column();
 
 -- -----------------------------------------------------------------------------
--- Row Level Security (Optional but recommended)
+-- Row Level Security (Optional but recommended for multi-user scenarios)
 -- -----------------------------------------------------------------------------
 -- Uncomment these lines if you want to enable RLS
 
@@ -156,7 +214,7 @@ CREATE TRIGGER update_crawled_content_updated_at
 --     USING (auth.role() = 'authenticated');
 
 -- -----------------------------------------------------------------------------
--- Cleanup function (optional)
+-- Cleanup function
 -- Remove old crawled content
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION cleanup_old_crawls(
@@ -189,6 +247,12 @@ $$;
 --
 -- Get recent crawls:
 -- SELECT * FROM get_recent_crawls(10);
+--
+-- Search by domain:
+-- SELECT * FROM search_by_domain('docs.anthropic.com', 10);
+--
+-- Get statistics:
+-- SELECT * FROM get_crawl_stats();
 --
 -- Cleanup old content:
 -- SELECT cleanup_old_crawls(30);  -- Remove content older than 30 days

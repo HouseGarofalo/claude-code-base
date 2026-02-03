@@ -1,7 +1,8 @@
 # =============================================================================
-# Crawl4AI MCP Server Dockerfile
+# Crawl4AI MCP Server Dockerfile (v2.0)
 # =============================================================================
 # Multi-stage build for minimal image size
+# Includes stages for: base, production, with-vector-rag, with-graph-rag, full
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -60,7 +61,7 @@ COPY src/ ./src/
 # Build wheel
 RUN pip wheel --no-deps --wheel-dir /wheels .
 
-# Install dependencies
+# Install core dependencies
 RUN pip wheel --wheel-dir /wheels \
     crawl4ai>=0.4.0 \
     mcp>=1.0.0 \
@@ -68,8 +69,17 @@ RUN pip wheel --wheel-dir /wheels \
     pydantic>=2.0.0 \
     python-dotenv>=1.0.0
 
+# Build RAG dependencies (Vector RAG)
+RUN pip wheel --wheel-dir /wheels-rag \
+    supabase>=2.0.0 \
+    openai>=1.0.0
+
+# Build Graph RAG dependencies
+RUN pip wheel --wheel-dir /wheels-graph \
+    neo4j>=5.0.0
+
 # -----------------------------------------------------------------------------
-# Stage 3: Production
+# Stage 3: Production (basic crawling only)
 # -----------------------------------------------------------------------------
 FROM base as production
 
@@ -114,9 +124,69 @@ EXPOSE 8000
 ENTRYPOINT ["python", "-m", "src.crawl4ai_mcp_server"]
 
 # -----------------------------------------------------------------------------
-# Stage 4: Development (optional, for local development)
+# Stage 4: With Vector RAG (Supabase + Azure OpenAI)
 # -----------------------------------------------------------------------------
-FROM production as development
+FROM production as with-vector-rag
+
+USER root
+
+# Copy and install RAG dependencies
+COPY --from=builder /wheels-rag /wheels-rag
+RUN pip install --no-index --find-links=/wheels-rag \
+    supabase>=2.0.0 \
+    openai>=1.0.0 \
+    && rm -rf /wheels-rag
+
+USER crawl4ai
+
+# Entry point
+ENTRYPOINT ["python", "-m", "src.crawl4ai_mcp_server"]
+
+# -----------------------------------------------------------------------------
+# Stage 5: With Graph RAG (Neo4j)
+# -----------------------------------------------------------------------------
+FROM production as with-graph-rag
+
+USER root
+
+# Copy and install Graph RAG dependencies
+COPY --from=builder /wheels-graph /wheels-graph
+RUN pip install --no-index --find-links=/wheels-graph \
+    neo4j>=5.0.0 \
+    && rm -rf /wheels-graph
+
+USER crawl4ai
+
+# Entry point
+ENTRYPOINT ["python", "-m", "src.crawl4ai_mcp_server"]
+
+# -----------------------------------------------------------------------------
+# Stage 6: Full (Vector RAG + Graph RAG)
+# -----------------------------------------------------------------------------
+FROM production as full
+
+USER root
+
+# Copy and install all RAG dependencies
+COPY --from=builder /wheels-rag /wheels-rag
+COPY --from=builder /wheels-graph /wheels-graph
+
+RUN pip install --no-index --find-links=/wheels-rag \
+    supabase>=2.0.0 \
+    openai>=1.0.0 \
+    && pip install --no-index --find-links=/wheels-graph \
+    neo4j>=5.0.0 \
+    && rm -rf /wheels-rag /wheels-graph
+
+USER crawl4ai
+
+# Entry point
+ENTRYPOINT ["python", "-m", "src.crawl4ai_mcp_server"]
+
+# -----------------------------------------------------------------------------
+# Stage 7: Development (for local development/testing)
+# -----------------------------------------------------------------------------
+FROM full as development
 
 USER root
 
@@ -124,27 +194,36 @@ USER root
 RUN pip install \
     pytest>=7.0.0 \
     pytest-asyncio>=0.21.0 \
+    pytest-cov>=4.0.0 \
     black>=23.0.0 \
-    ruff>=0.1.0
+    ruff>=0.1.0 \
+    mypy>=1.0.0
+
+# Copy test files
+COPY --chown=crawl4ai:crawl4ai tests/ ./tests/
 
 USER crawl4ai
 
 # Override entrypoint for development
 ENTRYPOINT ["/bin/bash"]
 
-# -----------------------------------------------------------------------------
-# Stage 5: With RAG support (optional)
-# -----------------------------------------------------------------------------
-FROM production as with-rag
-
-USER root
-
-# Install RAG dependencies
-RUN pip install \
-    supabase>=2.0.0 \
-    openai>=1.0.0
-
-USER crawl4ai
-
-# Entry point
-ENTRYPOINT ["python", "-m", "src.crawl4ai_mcp_server"]
+# =============================================================================
+# Build Commands:
+# =============================================================================
+#
+# Basic (crawling only):
+#   docker build --target production -t crawl4ai-mcp:latest .
+#
+# With Vector RAG:
+#   docker build --target with-vector-rag -t crawl4ai-mcp:vector .
+#
+# With Graph RAG:
+#   docker build --target with-graph-rag -t crawl4ai-mcp:graph .
+#
+# Full (Vector + Graph RAG):
+#   docker build --target full -t crawl4ai-mcp:full .
+#
+# Development:
+#   docker build --target development -t crawl4ai-mcp:dev .
+#
+# =============================================================================

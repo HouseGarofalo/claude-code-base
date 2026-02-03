@@ -1,5 +1,5 @@
 """
-Tests for Crawl4AI MCP Server
+Tests for Crawl4AI MCP Server v2.0
 
 Run with: pytest tests/
 """
@@ -15,6 +15,9 @@ from src.crawl4ai_mcp_server import (
     smart_crawl,
     extract_structured_data,
     truncate_content,
+    extract_entities_and_relations,
+    RAG_AVAILABLE,
+    GRAPH_RAG_AVAILABLE,
 )
 
 
@@ -39,6 +42,64 @@ class TestHelperFunctions:
         content = "A" * 100
         result = truncate_content(content, max_length=100)
         assert result == content
+
+
+class TestEntityExtraction:
+    """Tests for knowledge graph entity extraction."""
+
+    def test_extract_entities_basic(self):
+        """Test basic entity extraction from content."""
+        url = "https://docs.example.com/api/auth"
+        title = "Authentication Guide"
+        content = """
+        This is a guide about authentication and authorization.
+        It covers API security and integration patterns.
+        """
+
+        entities, relations = extract_entities_and_relations(url, title, content)
+
+        # Should have WebPage and Domain entities
+        entity_types = [e["type"] for e in entities]
+        assert "WebPage" in entity_types
+        assert "Domain" in entity_types
+
+        # Should have BELONGS_TO relation
+        relation_types = [r["relation"] for r in relations]
+        assert "BELONGS_TO" in relation_types
+
+    def test_extract_topics(self):
+        """Test topic extraction from content."""
+        url = "https://example.com/docs"
+        title = "Documentation"
+        content = """
+        This guide covers authentication, authorization, and API security.
+        It also includes deployment and configuration instructions.
+        """
+
+        entities, relations = extract_entities_and_relations(url, title, content)
+
+        # Should extract topic entities
+        topics = [e for e in entities if e["type"] == "Topic"]
+        topic_names = [t["name"].lower() for t in topics]
+
+        assert any("auth" in t for t in topic_names)
+        assert any("security" in t for t in topic_names)
+        assert any("deployment" in t for t in topic_names)
+
+    def test_extract_links(self):
+        """Test link extraction from content."""
+        url = "https://example.com/docs"
+        title = "Documentation"
+        content = """
+        See the API docs at https://api.example.com/docs
+        Also check https://other-site.com/resources
+        """
+
+        entities, relations = extract_entities_and_relations(url, title, content)
+
+        # Should have LINKS_TO relations for external links
+        links_to = [r for r in relations if r["relation"] == "LINKS_TO"]
+        assert len(links_to) > 0
 
 
 class TestCrawlSinglePage:
@@ -80,6 +141,60 @@ class TestCrawlSinglePage:
 
         assert "Error" in result
         assert "Connection timeout" in result
+
+    @pytest.mark.asyncio
+    async def test_crawl_single_page_no_storage_by_default(self):
+        """Test that storage is disabled by default."""
+        mock_result = MagicMock()
+        mock_result.success = True
+        mock_result.markdown = "# Test Page"
+        mock_result.cleaned_html = None
+        mock_result.metadata = {"title": "Test Page"}
+        mock_result.links = {"internal": [], "external": []}
+        mock_result.media = {"images": []}
+
+        mock_crawler = AsyncMock()
+        mock_crawler.arun = AsyncMock(return_value=mock_result)
+
+        with patch("src.crawl4ai_mcp_server.get_crawler", return_value=mock_crawler):
+            with patch("src.crawl4ai_mcp_server.store_in_vector_db") as mock_vector:
+                with patch("src.crawl4ai_mcp_server.store_in_graph_db") as mock_graph:
+                    result = await crawl_single_page("https://example.com")
+
+                    # Should NOT call storage functions by default
+                    mock_vector.assert_not_called()
+                    mock_graph.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_crawl_single_page_with_storage(self):
+        """Test crawl with storage enabled."""
+        mock_result = MagicMock()
+        mock_result.success = True
+        mock_result.markdown = "# Test Page"
+        mock_result.cleaned_html = None
+        mock_result.metadata = {"title": "Test Page"}
+        mock_result.links = {"internal": [], "external": []}
+        mock_result.media = {"images": []}
+
+        mock_crawler = AsyncMock()
+        mock_crawler.arun = AsyncMock(return_value=mock_result)
+
+        with patch("src.crawl4ai_mcp_server.get_crawler", return_value=mock_crawler):
+            with patch("src.crawl4ai_mcp_server.store_in_vector_db", return_value=True) as mock_vector:
+                with patch("src.crawl4ai_mcp_server.store_in_graph_db", return_value=True) as mock_graph:
+                    result = await crawl_single_page(
+                        "https://example.com",
+                        store_in_db=True,
+                        store_in_graph=True
+                    )
+
+                    # Should call storage functions when enabled
+                    mock_vector.assert_called_once()
+                    mock_graph.assert_called_once()
+
+                    # Should show storage status in output
+                    assert "Vector DB" in result
+                    assert "Graph DB" in result
 
 
 class TestCrawlMultiplePages:
@@ -168,6 +283,20 @@ class TestExtractStructuredData:
         assert data[0]["title"] == "Product 1"
 
 
+class TestRAGStatus:
+    """Tests for RAG availability checks."""
+
+    def test_rag_available_flag(self):
+        """Test that RAG_AVAILABLE is properly set based on config."""
+        # This will depend on environment variables
+        assert isinstance(RAG_AVAILABLE, bool)
+
+    def test_graph_rag_available_flag(self):
+        """Test that GRAPH_RAG_AVAILABLE is properly set based on config."""
+        # This will depend on environment variables
+        assert isinstance(GRAPH_RAG_AVAILABLE, bool)
+
+
 class TestIntegration:
     """Integration tests (require network access)."""
 
@@ -177,6 +306,26 @@ class TestIntegration:
         """Test real crawl (skipped by default)."""
         result = await crawl_single_page("https://example.com")
         assert "Example Domain" in result
+
+    @pytest.mark.skip(reason="Requires Supabase and Azure OpenAI")
+    @pytest.mark.asyncio
+    async def test_real_crawl_with_vector_storage(self):
+        """Test real crawl with vector storage (skipped by default)."""
+        result = await crawl_single_page(
+            "https://example.com",
+            store_in_db=True
+        )
+        assert "Vector DB: ✓" in result
+
+    @pytest.mark.skip(reason="Requires Neo4j")
+    @pytest.mark.asyncio
+    async def test_real_crawl_with_graph_storage(self):
+        """Test real crawl with graph storage (skipped by default)."""
+        result = await crawl_single_page(
+            "https://example.com",
+            store_in_graph=True
+        )
+        assert "Graph DB: ✓" in result
 
 
 if __name__ == "__main__":
