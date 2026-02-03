@@ -12,6 +12,7 @@
 - [Overview](#overview)
 - [Quick Start](#quick-start)
 - [What's Included](#whats-included)
+- [MCP Servers](#mcp-servers)
 - [Security Features](#security-features)
 - [Documentation](#documentation)
 - [Contributing](#contributing)
@@ -77,7 +78,10 @@ claude-code-base/
 ├── .claude/                    # Claude Code configuration
 │   ├── CLAUDE.md              # Project instructions
 │   ├── settings.json          # Editor settings
+│   ├── mcp.json.example       # MCP server configuration example
 │   └── reference/             # Reference documentation
+├── mcp-servers/               # MCP server implementations
+│   └── crawl4ai-rag/          # Web crawling + Vector/Graph RAG
 ├── scripts/                    # Setup and maintenance scripts
 │   ├── setup-claude-code-project.ps1
 │   ├── sync-claude-code.ps1
@@ -85,7 +89,8 @@ claude-code-base/
 ├── docs/                       # Documentation
 │   ├── setup-guide.md
 │   ├── sync-guide.md
-│   └── best-practices.md
+│   ├── best-practices.md
+│   └── mcp-servers/           # MCP server documentation
 ├── .pre-commit-config.yaml    # Pre-commit hook configuration
 ├── .gitignore                 # Comprehensive gitignore
 ├── .gitattributes             # Line ending normalization
@@ -96,6 +101,46 @@ claude-code-base/
 ├── LICENSE                    # MIT License
 └── README.md                  # This file
 ```
+
+---
+
+## MCP Servers
+
+This template includes MCP (Model Context Protocol) servers that extend Claude Code's capabilities.
+
+### Crawl4AI RAG Server
+
+Web crawling with optional Vector and Graph RAG storage for AI-ready content.
+
+**Quick Start** (basic crawling, no database required):
+
+```bash
+cd mcp-servers/crawl4ai-rag
+pip install -e .
+python -m src.crawl4ai_mcp_server
+```
+
+**With RAG Storage** (requires Azure OpenAI + Supabase/Neo4j):
+
+1. Copy `.env.example` to `.env` and configure credentials
+2. Run database setup scripts (`supabase_setup.sql`, `neo4j_setup.cypher`)
+3. Start the server with storage enabled
+
+**Configuration** - Add to `.claude/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "crawl4ai": {
+      "command": "python",
+      "args": ["-m", "src.crawl4ai_mcp_server"],
+      "cwd": "${workspaceFolder}/mcp-servers/crawl4ai-rag"
+    }
+  }
+}
+```
+
+📖 **Full documentation**: [docs/mcp-servers/crawl4ai-setup.md](docs/mcp-servers/crawl4ai-setup.md)
 
 ---
 
@@ -119,6 +164,7 @@ All security tools run automatically via pre-commit hooks. No secrets should eve
 | [Setup Guide](docs/setup-guide.md) | Detailed setup instructions |
 | [Sync Guide](docs/sync-guide.md) | How to sync with base template |
 | [Best Practices](docs/best-practices.md) | Claude Code best practices |
+| [MCP Servers](docs/mcp-servers/index.md) | MCP server setup and usage |
 | [Contributing](CONTRIBUTING.md) | How to contribute |
 | [Security](SECURITY.md) | Security policy |
 | [Changelog](CHANGELOG.md) | Version history |

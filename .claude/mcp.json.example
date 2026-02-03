@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "crawl4ai": {
+      "command": "python",
+      "args": ["-m", "src.crawl4ai_mcp_server"],
+      "cwd": "${workspaceFolder}/mcp-servers/crawl4ai-rag",
+      "env": {
+        "TRANSPORT": "stdio",
+        "HEADLESS": "true"
+      }
+    }
+  }
+}
