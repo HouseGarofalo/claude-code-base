@@ -1,85 +1,16 @@
 {
-  // Claude Code Project Settings
-  // These settings control Claude Code behavior for this project
-  // See: https://docs.anthropic.com/en/docs/claude-code/settings
-
-  // =============================================================================
-  // MODEL & TOOL PERMISSIONS
-  // =============================================================================
-
-  // Tools that Claude is explicitly allowed to use
-  // Empty array means all tools are allowed (default behavior)
   "allowedTools": [],
-
-  // Tools that Claude is NOT allowed to use
-  // Add tool names here to restrict specific capabilities
-  // Example: ["Bash(rm -rf)", "Write(/etc/*)"]
   "disallowedTools": [],
-
-  // =============================================================================
-  // PERMISSION PROMPTING
-  // =============================================================================
-
-  // Glob patterns for files/commands that should auto-approve without prompting
-  // Be careful with these - only add trusted patterns
   "permissions": {
-    // Bash commands that are always allowed without prompting
-    // Example: ["git status", "npm test", "ls *"]
     "allow": [],
-
-    // Bash commands that are always denied
-    // Example: ["rm -rf /", "chmod 777 *"]
     "deny": []
   },
-
-  // =============================================================================
-  // CONTEXT & MEMORY SETTINGS
-  // =============================================================================
-
-  // Files to automatically include in context for every conversation
-  // Paths are relative to project root
-  "contextFiles": [
-    "CLAUDE.md",
-    ".claude/SESSION_KNOWLEDGE.md"
-  ],
-
-  // Maximum tokens to use for context files
-  // Lower values preserve more space for conversation
-  "contextTokenLimit": 8000,
-
-  // =============================================================================
-  // PROJECT METADATA
-  // =============================================================================
-
-  // Project description shown in Claude Code UI
+  "contextFiles": ["CLAUDE.md", ".claude/SESSION_KNOWLEDGE.md"],
   "description": "Claude Code Base Project",
-
-  // Primary programming languages used (helps Claude understand context)
   "languages": [],
-
-  // Project type hints for better assistance
-  // Options: "web", "api", "cli", "library", "monorepo", "mobile", "desktop"
   "projectType": null,
-
-  // =============================================================================
-  // BEHAVIOR SETTINGS
-  // =============================================================================
-
-  // Whether to automatically run suggested commands
-  // true = ask before running, false = auto-run (use with caution)
   "confirmCommands": true,
-
-  // Whether to show file diffs before applying edits
   "showDiffs": true,
-
-  // Default branch for git operations
   "defaultBranch": "main",
-
-  // =============================================================================
-  // MCP SERVER CONFIGURATION
-  // =============================================================================
-
-  // MCP servers to connect to for this project
-  // These extend the global MCP configuration
   "mcpServers": {}
 }
