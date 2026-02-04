@@ -254,5 +254,6 @@
     "editor.insertSpaces": true,
     "editor.tabSize": 2,
     "editor.autoIndent": "keep"
-  }
+  },
+  "snyk.advanced.autoSelectOrganization": true
 }
