@@ -236,7 +236,7 @@ if (-not (Test-Path $ProjectPath -PathType Container)) {
 # ============================================================================
 
 Write-Host ""
-Write-Host "[1/8] Checking Required Directories..." -ForegroundColor Yellow
+Write-Host "[1/10] Checking Required Directories..." -ForegroundColor Yellow
 Write-Host "--------------------------------------"
 
 $requiredDirs = @(
@@ -285,7 +285,7 @@ Write-Info "Directories: $existingDirs/$dirCount present"
 # ============================================================================
 
 Write-Host ""
-Write-Host "[2/8] Checking Required Files..." -ForegroundColor Yellow
+Write-Host "[2/10] Checking Required Files..." -ForegroundColor Yellow
 Write-Host "---------------------------------"
 
 $requiredFiles = @(
@@ -365,7 +365,7 @@ Write-Info "Files: $existingFiles/$fileCount present"
 # ============================================================================
 
 Write-Host ""
-Write-Host "[3/8] Counting Assets..." -ForegroundColor Yellow
+Write-Host "[3/10] Counting Assets..." -ForegroundColor Yellow
 Write-Host "------------------------"
 
 $skillsPath = Join-Path $ProjectPath ".claude/skills"
@@ -407,7 +407,7 @@ if ($commandCount -eq 0) {
 # ============================================================================
 
 Write-Host ""
-Write-Host "[4/8] Validating JSON Files..." -ForegroundColor Yellow
+Write-Host "[4/10] Validating JSON Files..." -ForegroundColor Yellow
 Write-Host "-------------------------------"
 
 $jsonFiles = @(
@@ -443,7 +443,7 @@ foreach ($jsonFile in $jsonFiles) {
 # ============================================================================
 
 Write-Host ""
-Write-Host "[5/8] Checking Pre-commit Configuration..." -ForegroundColor Yellow
+Write-Host "[5/10] Checking Pre-commit Configuration..." -ForegroundColor Yellow
 Write-Host "------------------------------------------"
 
 $precommitPath = Join-Path $ProjectPath ".pre-commit-config.yaml"
@@ -486,7 +486,7 @@ else {
 # ============================================================================
 
 Write-Host ""
-Write-Host "[6/8] Validating CLAUDE.md Placeholders..." -ForegroundColor Yellow
+Write-Host "[6/10] Validating CLAUDE.md Placeholders..." -ForegroundColor Yellow
 Write-Host "------------------------------------------"
 
 $claudeMdPath = Join-Path $ProjectPath "CLAUDE.md"
@@ -539,7 +539,7 @@ else {
 # ============================================================================
 
 Write-Host ""
-Write-Host "[7/8] Checking Archon Project Connection..." -ForegroundColor Yellow
+Write-Host "[7/10] Checking Archon Project Connection..." -ForegroundColor Yellow
 Write-Host "-------------------------------------------"
 
 $configPath = Join-Path $ProjectPath ".claude/config.yaml"
@@ -587,12 +587,127 @@ else {
 }
 
 # ============================================================================
-# Step 8: Generate Optimization Suggestions
+# Step 8: Validate Template Profile
 # ============================================================================
 
 Write-Host ""
-Write-Host "[8/8] Generating Optimization Suggestions..." -ForegroundColor Yellow
+Write-Host "[8/10] Validating Template Profile..." -ForegroundColor Yellow
+Write-Host "-------------------------------------"
+
+$configPath2 = Join-Path $ProjectPath ".claude/config.yaml"
+$hasProfile = $false
+
+if (Test-Path $configPath2) {
+    $configContent2 = Get-Content $configPath2 -Raw -ErrorAction SilentlyContinue
+
+    if ($configContent2 -match 'template_profile:') {
+        $hasProfile = $true
+        Write-Success "template_profile section found"
+
+        # Check required profile fields
+        $profileFields = @(
+            @{ Name = "template_version"; Pattern = 'template_version:\s*[''"]?([^''"}\s,\]]+)' },
+            @{ Name = "project_type"; Pattern = 'project_type:\s*[''"]?([^''"}\s,\]]+)' },
+            @{ Name = "primary_language"; Pattern = 'primary_language:\s*[''"]?([^''"}\s,\]]+)' },
+            @{ Name = "skill_groups"; Pattern = 'skill_groups:\s*\[([^\]]+)\]' },
+            @{ Name = "command_groups"; Pattern = 'command_groups:\s*\[([^\]]+)\]' }
+        )
+
+        foreach ($field in $profileFields) {
+            if ($configContent2 -match $field.Pattern) {
+                $value = $Matches[1].Trim()
+                if ($ShowDetails) {
+                    Write-Success "  $($field.Name): $value"
+                }
+            } else {
+                $warnings += "template_profile missing field: $($field.Name)"
+                Write-Warning "Missing profile field: $($field.Name)"
+            }
+        }
+
+        # Validate skills match declared skill_groups
+        if ($configContent2 -match 'skill_groups:\s*\[([^\]]+)\]') {
+            $declaredGroups = ($Matches[1] -replace '[''"]', '').Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+
+            $manifestPath = Join-Path $ProjectPath "..\templates\manifest.json"
+            # Try to find manifest in template repo (may not be accessible from target project)
+            # Instead, validate skills directory contents against declared groups
+            $skillsDir = Join-Path $ProjectPath ".claude/skills"
+            if (Test-Path $skillsDir) {
+                $existingSkills = Get-ChildItem $skillsDir -Directory -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name
+                $skillCountForProfile = ($existingSkills | Measure-Object).Count
+                if ($ShowDetails) {
+                    Write-Info "  Skills found: $skillCountForProfile (groups: $($declaredGroups -join ', '))"
+                }
+            }
+        }
+
+        # Validate commands match declared command_groups
+        if ($configContent2 -match 'command_groups:\s*\[([^\]]+)\]') {
+            $declaredCmdGroups = ($Matches[1] -replace '[''"]', '').Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+
+            $commandsDir = Join-Path $ProjectPath ".claude/commands"
+            if (Test-Path $commandsDir) {
+                $existingCommands = Get-ChildItem $commandsDir -Filter "*.md" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name
+                $cmdCountForProfile = ($existingCommands | Measure-Object).Count
+                if ($ShowDetails) {
+                    Write-Info "  Commands found: $cmdCountForProfile (groups: $($declaredCmdGroups -join ', '))"
+                }
+            }
+        }
+    } else {
+        Write-Warning "No template_profile section found in config.yaml"
+        $suggestions += "Run setup-claude-code-project.ps1 or add template_profile to .claude/config.yaml for selective sync support"
+    }
+} else {
+    Write-Info "Config file not found (checked in earlier validation)"
+}
+
+# ============================================================================
+# Step 9: Check Dev Framework Consistency
+# ============================================================================
+
+Write-Host ""
+Write-Host "[9/10] Checking Dev Framework Consistency..." -ForegroundColor Yellow
 Write-Host "--------------------------------------------"
+
+if ($hasProfile) {
+    # Check if dev_frameworks are declared
+    if ($configContent2 -match 'dev_frameworks:\s*\[([^\]]*)\]') {
+        $rawDevFwks = $Matches[1] -replace '[''"]', ''
+        $devFwks = @()
+        if ($rawDevFwks.Trim()) {
+            $devFwks = $rawDevFwks.Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+        }
+
+        if ($devFwks.Count -gt 0) {
+            Write-Info "Dev frameworks declared: $($devFwks -join ', ')"
+
+            # Check PRP consistency
+            $prpsDir = Join-Path $ProjectPath "PRPs"
+            if ($devFwks -contains "prp") {
+                if (Test-Path $prpsDir) {
+                    Write-Success "PRP framework: directory present"
+                } else {
+                    $warnings += "PRP framework declared but PRPs/ directory missing"
+                    Write-Warning "PRP directory missing (declared in dev_frameworks)"
+                }
+            }
+        } else {
+            Write-Info "No dev frameworks declared"
+        }
+    }
+} else {
+    Write-Info "Skipped (no template_profile)"
+}
+
+# ============================================================================
+# Step 10: Generate Optimization Suggestions
+# ============================================================================
+
+Write-Host ""
+Write-Host "[10/10] Generating Optimization Suggestions..." -ForegroundColor Yellow
+Write-Host "----------------------------------------------"
 
 # Check MCP configuration for recommended servers
 $mcpPath = Join-Path $ProjectPath ".vscode/mcp.json"

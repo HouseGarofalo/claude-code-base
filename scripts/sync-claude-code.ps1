@@ -30,7 +30,7 @@
 
 .NOTES
     Author: Claude Code Base
-    Version: 1.0.0
+    Version: 2.0.0
 #>
 
 [CmdletBinding()]
@@ -51,8 +51,8 @@ $ErrorActionPreference = "Stop"
 $ScriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 $TemplatePath = Split-Path -Parent $ScriptPath
 
-# Files and folders to sync
-$SyncItems = @(
+# Default sync items (used for legacy projects without template_profile)
+$DefaultSyncItems = @(
     @{ Source = ".claude"; Type = "Directory" },
     @{ Source = ".vscode"; Type = "Directory" },
     @{ Source = "CLAUDE.md"; Type = "File" },
@@ -60,7 +60,8 @@ $SyncItems = @(
     @{ Source = ".gitattributes"; Type = "File" },
     @{ Source = ".pre-commit-config.yaml"; Type = "File" },
     @{ Source = "scripts\sync-claude-code.ps1"; Type = "File" },
-    @{ Source = "scripts\validate-claude-code.ps1"; Type = "File" }
+    @{ Source = "scripts\validate-claude-code.ps1"; Type = "File" },
+    @{ Source = "scripts\update-project.ps1"; Type = "File" }
 )
 
 # Files to exclude from sync (target-specific files that should not be overwritten)
@@ -158,6 +159,177 @@ function Get-UserInput {
     } while ($true)
 
     return $input
+}
+
+function Get-TemplateProfile {
+    <#
+    .SYNOPSIS
+        Reads template_profile from target project's .claude/config.yaml.
+    .DESCRIPTION
+        Returns a hashtable with profile fields, or $null if no profile exists (legacy project).
+    #>
+    param([string]$TargetPath)
+
+    $configPath = Join-Path $TargetPath ".claude\config.yaml"
+    if (-not (Test-Path $configPath)) { return $null }
+
+    $content = Get-Content $configPath -Raw -ErrorAction SilentlyContinue
+    if (-not $content) { return $null }
+
+    # Check if template_profile section exists
+    if ($content -notmatch 'template_profile:') { return $null }
+
+    $profile = @{}
+
+    # Extract template_version
+    if ($content -match 'template_version:\s*[''"]?([^''"}\s,\]]+)') {
+        $profile.template_version = $Matches[1]
+    }
+
+    # Extract project_type
+    if ($content -match 'project_type:\s*[''"]?([^''"}\s,\]]+)') {
+        $profile.project_type = $Matches[1]
+    }
+
+    # Extract primary_language
+    if ($content -match 'primary_language:\s*[''"]?([^''"}\s,\]]+)') {
+        $profile.primary_language = $Matches[1]
+    }
+
+    # Extract framework
+    if ($content -match 'framework:\s*[''"]?([^''"}\s,\]]+)') {
+        $profile.framework = $Matches[1]
+    }
+
+    # Extract skill_groups as array
+    if ($content -match 'skill_groups:\s*\[([^\]]+)\]') {
+        $profile.skill_groups = ($Matches[1] -replace '[''"]', '').Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+    }
+
+    # Extract command_groups as array
+    if ($content -match 'command_groups:\s*\[([^\]]+)\]') {
+        $profile.command_groups = ($Matches[1] -replace '[''"]', '').Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+    }
+
+    # Extract dev_frameworks as array
+    if ($content -match 'dev_frameworks:\s*\[([^\]]*)\]') {
+        $rawValue = $Matches[1] -replace '[''"]', ''
+        if ($rawValue.Trim()) {
+            $profile.dev_frameworks = $rawValue.Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+        } else {
+            $profile.dev_frameworks = @()
+        }
+    }
+
+    return $profile
+}
+
+function Get-ManifestConfig {
+    <#
+    .SYNOPSIS
+        Reads and parses templates/manifest.json from the template repository.
+    #>
+    $manifestPath = Join-Path $TemplatePath "templates\manifest.json"
+    if (-not (Test-Path $manifestPath)) {
+        Write-Status "Manifest not found: $manifestPath" "WARNING"
+        return $null
+    }
+
+    $content = Get-Content $manifestPath -Raw -ErrorAction Stop
+    return ($content | ConvertFrom-Json)
+}
+
+function Get-ProfileSelectedSkills {
+    <#
+    .SYNOPSIS
+        Returns skill directory names that match the template_profile's skill_groups.
+    #>
+    param(
+        $Manifest,
+        [string[]]$SkillGroups
+    )
+
+    $selectedSkills = @()
+
+    foreach ($group in $SkillGroups) {
+        $groupSkills = $Manifest.skills.$group
+        if ($groupSkills) {
+            $selectedSkills += @($groupSkills)
+        }
+    }
+
+    return $selectedSkills | Sort-Object -Unique
+}
+
+function Get-ProfileSelectedCommands {
+    <#
+    .SYNOPSIS
+        Returns command filenames that match the template_profile's command_groups.
+    #>
+    param(
+        $Manifest,
+        [string[]]$CommandGroups
+    )
+
+    $selectedCommands = @()
+
+    foreach ($group in $CommandGroups) {
+        $groupCommands = $Manifest.commands.$group
+        if ($groupCommands) {
+            $selectedCommands += @($groupCommands)
+        }
+    }
+
+    return $selectedCommands | Sort-Object -Unique
+}
+
+function Build-SelectiveSyncItems {
+    <#
+    .SYNOPSIS
+        Builds sync item list based on template_profile, syncing only relevant skills/commands.
+    #>
+    param(
+        $Profile,
+        $Manifest
+    )
+
+    # Core config files that always sync
+    $items = @(
+        @{ Source = ".claude\config.yaml"; Type = "File" },
+        @{ Source = ".claude\settings.json"; Type = "File" },
+        @{ Source = ".claude\SESSION_KNOWLEDGE.md"; Type = "File" },
+        @{ Source = ".claude\DEVELOPMENT_LOG.md"; Type = "File" },
+        @{ Source = ".claude\FAILED_ATTEMPTS.md"; Type = "File" },
+        @{ Source = ".claude\context"; Type = "Directory" },
+        @{ Source = ".claude\hooks"; Type = "Directory" },
+        @{ Source = ".vscode"; Type = "Directory" },
+        @{ Source = ".gitattributes"; Type = "File" },
+        @{ Source = ".pre-commit-config.yaml"; Type = "File" },
+        @{ Source = "scripts\sync-claude-code.ps1"; Type = "File" },
+        @{ Source = "scripts\validate-claude-code.ps1"; Type = "File" },
+        @{ Source = "scripts\update-project.ps1"; Type = "File" }
+    )
+
+    # Add selected skills individually
+    $selectedSkills = Get-ProfileSelectedSkills -Manifest $Manifest -SkillGroups $Profile.skill_groups
+    foreach ($skill in $selectedSkills) {
+        $skillPath = ".claude\skills\$skill"
+        $items += @{ Source = $skillPath; Type = "Directory" }
+    }
+
+    # Add selected commands individually
+    $selectedCommands = Get-ProfileSelectedCommands -Manifest $Manifest -CommandGroups $Profile.command_groups
+    foreach ($cmd in $selectedCommands) {
+        $cmdPath = ".claude\commands\$cmd.md"
+        $items += @{ Source = $cmdPath; Type = "File" }
+    }
+
+    # Add PRPs only if PRP dev framework was selected
+    if ($Profile.dev_frameworks -contains "prp") {
+        $items += @{ Source = "PRPs"; Type = "Directory" }
+    }
+
+    return $items
 }
 
 function Test-Prerequisites {
@@ -380,6 +552,42 @@ if ($DryRun) {
     Write-Host "  [!] DRY RUN MODE - No changes will be made" -ForegroundColor Magenta
 }
 
+# Check for template_profile to determine sync mode
+Write-Step 1.5 "Detecting Sync Mode"
+
+$templateProfile = Get-TemplateProfile -TargetPath $TargetPath
+$manifest = Get-ManifestConfig
+
+$SyncItems = $DefaultSyncItems
+$syncMode = "legacy"
+
+if ($templateProfile -and $manifest) {
+    $syncMode = "selective"
+    $SyncItems = Build-SelectiveSyncItems -Profile $templateProfile -Manifest $manifest
+
+    Write-Status "Template profile found - using selective sync" "SUCCESS"
+    Write-Host ""
+    Write-Host "  Profile Details:" -ForegroundColor White
+    Write-Host "    Project Type: $($templateProfile.project_type)" -ForegroundColor Cyan
+    Write-Host "    Language:     $($templateProfile.primary_language)" -ForegroundColor Cyan
+    Write-Host "    Framework:    $($templateProfile.framework)" -ForegroundColor Cyan
+    Write-Host "    Skill Groups: $($templateProfile.skill_groups -join ', ')" -ForegroundColor Cyan
+    Write-Host "    Cmd Groups:   $($templateProfile.command_groups -join ', ')" -ForegroundColor Cyan
+    if ($templateProfile.dev_frameworks.Count -gt 0) {
+        Write-Host "    Dev Fwks:     $($templateProfile.dev_frameworks -join ', ')" -ForegroundColor Cyan
+    }
+    Write-Host ""
+
+    $selectedSkills = Get-ProfileSelectedSkills -Manifest $manifest -SkillGroups $templateProfile.skill_groups
+    $selectedCommands = Get-ProfileSelectedCommands -Manifest $manifest -CommandGroups $templateProfile.command_groups
+    Write-Host "    Skills to sync:   $($selectedSkills.Count)" -ForegroundColor White
+    Write-Host "    Commands to sync: $($selectedCommands.Count)" -ForegroundColor White
+} else {
+    Write-Status "No template profile found - using legacy full sync" "WARNING"
+    Write-Host "  All skills and commands will be synced." -ForegroundColor Gray
+    Write-Host "  Tip: Run setup-claude-code-project.ps1 to generate a template_profile." -ForegroundColor Gray
+}
+
 # Confirm sync
 if (-not $Force -and -not $DryRun) {
     Write-Host ""
@@ -387,6 +595,7 @@ if (-not $Force -and -not $DryRun) {
     Write-Host "                      Sync Configuration                              " -ForegroundColor Yellow
     Write-Host "======================================================================" -ForegroundColor Yellow
     Write-Host ""
+    Write-Host "  Sync Mode: $syncMode" -ForegroundColor White
     Write-Host "  This will sync the following Claude Code files to your codebase:" -ForegroundColor White
     Write-Host ""
     foreach ($item in $SyncItems) {
@@ -471,27 +680,44 @@ Write-Host ""
 
 if (-not $DryRun) {
     Write-Host "Target:  $TargetPath" -ForegroundColor Cyan
+    Write-Host "Mode:    $syncMode" -ForegroundColor Cyan
     if (-not $NoBackup -and $totalStats.Backed -gt 0) {
         Write-Host "Backups: $backupDir" -ForegroundColor Blue
     }
     Write-Host ""
 
-    Write-Host "What was synced:" -ForegroundColor Green
-    Write-Host "   - Claude configuration (.claude/)" -ForegroundColor White
-    Write-Host "   - VS Code settings (.vscode/)" -ForegroundColor White
-    Write-Host "   - Claude instructions (CLAUDE.md)" -ForegroundColor White
-    Write-Host "   - PRP framework (PRPs/)" -ForegroundColor White
-    Write-Host "   - Git attributes (.gitattributes)" -ForegroundColor White
-    Write-Host "   - Pre-commit hooks (.pre-commit-config.yaml)" -ForegroundColor White
-    Write-Host "   - Sync and validation scripts (scripts/)" -ForegroundColor White
+    if ($syncMode -eq "selective") {
+        Write-Host "What was synced (selective):" -ForegroundColor Green
+        Write-Host "   - Core Claude configuration (.claude/ config files)" -ForegroundColor White
+        Write-Host "   - VS Code settings (.vscode/)" -ForegroundColor White
+        Write-Host "   - Selected skills ($($selectedSkills.Count) matching profile)" -ForegroundColor White
+        Write-Host "   - Selected commands ($($selectedCommands.Count) matching profile)" -ForegroundColor White
+        Write-Host "   - Git attributes (.gitattributes)" -ForegroundColor White
+        Write-Host "   - Pre-commit hooks (.pre-commit-config.yaml)" -ForegroundColor White
+        Write-Host "   - Maintenance scripts (scripts/)" -ForegroundColor White
+        if ($templateProfile.dev_frameworks -contains "prp") {
+            Write-Host "   - PRP framework (PRPs/)" -ForegroundColor White
+        }
+    } else {
+        Write-Host "What was synced (full):" -ForegroundColor Green
+        Write-Host "   - Claude configuration (.claude/)" -ForegroundColor White
+        Write-Host "   - VS Code settings (.vscode/)" -ForegroundColor White
+        Write-Host "   - Claude instructions (CLAUDE.md)" -ForegroundColor White
+        Write-Host "   - PRP framework (PRPs/)" -ForegroundColor White
+        Write-Host "   - Git attributes (.gitattributes)" -ForegroundColor White
+        Write-Host "   - Pre-commit hooks (.pre-commit-config.yaml)" -ForegroundColor White
+        Write-Host "   - Sync and validation scripts (scripts/)" -ForegroundColor White
+    }
     Write-Host ""
 
     Write-Host "Next steps:" -ForegroundColor Yellow
     Write-Host "   1. Review synced files for any project-specific customizations needed" -ForegroundColor White
-    Write-Host "   2. Update CLAUDE.md with project-specific context and instructions" -ForegroundColor White
-    Write-Host "   3. Configure .claude/config.yaml with your Archon project ID" -ForegroundColor White
-    Write-Host "   4. Commit the changes:" -ForegroundColor White
-    Write-Host "      git add .claude .vscode CLAUDE.md PRPs && git commit -m 'chore: sync Claude Code configuration'" -ForegroundColor DarkGray
+    if ($syncMode -eq "legacy") {
+        Write-Host "   2. Update CLAUDE.md with project-specific context and instructions" -ForegroundColor White
+        Write-Host "   3. Configure .claude/config.yaml with your Archon project ID" -ForegroundColor White
+    }
+    Write-Host "   $(if ($syncMode -eq 'legacy') { '4' } else { '2' }). Commit the changes:" -ForegroundColor White
+    Write-Host "      git add .claude .vscode && git commit -m 'chore: sync Claude Code configuration'" -ForegroundColor DarkGray
     Write-Host ""
 }
 else {

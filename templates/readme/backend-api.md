@@ -38,12 +38,11 @@
 
 | Category | Technology |
 |----------|------------|
-| **Runtime** | Node.js / Python / .NET |
-| **Framework** | Express / FastAPI / ASP.NET Core |
+| **Language** | {{LANGUAGE}} |
+| **Framework** | {{FRAMEWORK}} |
 | **Database** | PostgreSQL / MongoDB / SQL Server |
-| **ORM** | Prisma / SQLAlchemy / Entity Framework |
 | **Auth** | JWT / OAuth2 |
-| **Testing** | Jest / pytest / xUnit |
+| **Testing** | Customize per language |
 
 ---
 

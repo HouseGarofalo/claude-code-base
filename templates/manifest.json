@@ -1,16 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Claude Code Base Template Manifest",
-  "description": "Defines which files to copy when creating a new project from this template",
-  "version": "1.0.0",
+  "description": "Defines which files to copy and how to selectively configure new projects from this template",
+  "version": "2.0.0",
 
   "include": [
     ".claude/",
     ".vscode/",
-    "docs/",
-    "PRPs/",
-    "scripts/",
-    "templates/",
+    ".github/",
     ".gitignore",
     ".gitattributes",
     ".pre-commit-config.yaml",
@@ -40,6 +37,18 @@
     ".nyc_output/"
   ],
 
+  "neverCopy": [
+    "mcp-servers/",
+    "templates/",
+    "tests/",
+    "docs/",
+    "scripts/setup-claude-code-project.ps1",
+    "scripts/deploy-mcp-servers.ps1",
+    "scripts/install-mcp-servers.ps1",
+    "scripts/stats.ps1",
+    "CHANGELOG.md"
+  ],
+
   "customize": {
     "README.md": {
       "action": "replace",
@@ -47,18 +56,21 @@
       "variables": [
         "{{PROJECT_NAME}}",
         "{{PROJECT_DESCRIPTION}}",
-        "{{ORG}}"
+        "{{ORG}}",
+        "{{LANGUAGE}}",
+        "{{FRAMEWORK}}"
       ]
+    },
+    "CLAUDE.md": {
+      "action": "replace",
+      "source": "templates/claude-md/CLAUDE.md.template",
+      "note": "Generated from template with conditional sections based on dev frameworks"
     },
     "CODEOWNERS": {
       "action": "update",
       "replacements": {
         "@HouseGarofalo/maintainers": "@{{ORG}}/maintainers"
       }
-    },
-    "CLAUDE.md": {
-      "action": "keep",
-      "note": "Keep base instructions, customize as needed"
     }
   },
 
@@ -97,24 +109,490 @@
     }
   },
 
+  "projectTypeMapping": {
+    "web-frontend": ["core", "frontend"],
+    "backend-api": ["core", "backend"],
+    "fullstack": ["core", "frontend", "backend"],
+    "cli-library": ["core"],
+    "infrastructure": ["core", "cloud_infra"]
+  },
+
+  "skills": {
+    "core": [
+      "archon-workflow",
+      "code-review",
+      "code-review-mode",
+      "code-reviewer-agent",
+      "code-simplifier-agent",
+      "code-migration-mode",
+      "context-engineering",
+      "debugging-mode",
+      "documentation",
+      "documentation-mode",
+      "documentation-manager-agent",
+      "git-workflow",
+      "git-wizard-agent",
+      "github",
+      "github-actions",
+      "mcp-development",
+      "onboarding-mode",
+      "pair-programmer-mode",
+      "performance-mode",
+      "performance-optimizer-agent",
+      "pre-commit",
+      "project-wizard",
+      "prompt-engineering",
+      "refactoring-mode",
+      "security-audit-mode",
+      "security-auditor-agent",
+      "security-scanner",
+      "testing",
+      "tdd-mode",
+      "architect-reviewer-agent",
+      "architecture-mode",
+      "background-researcher-agent",
+      "compliance-mode",
+      "docs-architect-agent",
+      "mermaid-diagrams",
+      "claude-sync"
+    ],
+    "frontend": [
+      "react-typescript",
+      "nextjs-app-router",
+      "svelte-kit",
+      "vue-typescript",
+      "tailwind-ui",
+      "component-library",
+      "form-design",
+      "animation-motion",
+      "framer-motion",
+      "responsive-design",
+      "dashboard-design",
+      "data-visualization",
+      "shadcn-ui",
+      "radix-ui",
+      "storybook",
+      "state-management",
+      "frontend-testing",
+      "cypress",
+      "jest",
+      "vitest",
+      "vite",
+      "accessibility-wcag",
+      "accessibility-mode",
+      "accessibility-auditor-agent",
+      "frontend-architect-agent",
+      "tanstack-query",
+      "tanstack-router",
+      "mobile-pwa",
+      "ui-ux-principles",
+      "browserless",
+      "puppeteer",
+      "playwright-mcp",
+      "web-automation",
+      "excalidraw",
+      "zod-validation",
+      "trpc-api"
+    ],
+    "backend": [
+      "python-fastapi",
+      "dotnet-csharp",
+      "aws-lambda",
+      "postgresql",
+      "mssql-mcp",
+      "prisma-orm",
+      "supabase",
+      "openapi-swagger",
+      "api-design-mode",
+      "api-designer-agent",
+      "api-documenter-agent",
+      "database-mode",
+      "database-architect-agent",
+      "data-engineer-agent"
+    ],
+    "cloud_infra": [
+      "azure-ai",
+      "azure-aks",
+      "azure-api-management",
+      "azure-container-apps",
+      "azure-cosmos-db",
+      "azure-devops-pipelines",
+      "azure-event-grid",
+      "azure-functions",
+      "azure-mcp",
+      "azure-service-bus",
+      "azure-static-web-apps",
+      "docker-compose",
+      "kubernetes-helm",
+      "bicep",
+      "cloudflare",
+      "haproxy",
+      "nginx-proxy",
+      "grafana-dashboards",
+      "streamlit-dashboards",
+      "devops-engineer-agent",
+      "codespaces",
+      "monorepo-turborepo",
+      "git-worktrees",
+      "renovate",
+      "semantic-release"
+    ],
+    "ai_ml": [
+      "langchain",
+      "llamaindex",
+      "crewai",
+      "pydantic-ai",
+      "openai-api",
+      "openrouter",
+      "ollama",
+      "litellm",
+      "instructor",
+      "huggingface-transformers",
+      "semantic-kernel",
+      "rag-patterns",
+      "mlflow",
+      "text-generation-inference",
+      "localai",
+      "claude-agent-sdk",
+      "agentic-workflows",
+      "ai-engineer-agent",
+      "crawl4ai",
+      "microsoft-fabric",
+      "fabric-rti-mcp",
+      "microsoft-365-agents-toolkit"
+    ],
+    "smart_home_iot": [
+      "adguard-home",
+      "esphome-devices",
+      "frigate-nvr",
+      "fully-kiosk",
+      "home-assistant",
+      "homebridge",
+      "matter-thread",
+      "mqtt-iot",
+      "node-red-automation",
+      "octoprint",
+      "scrypted",
+      "tasmota",
+      "wireguard",
+      "zigbee2mqtt",
+      "ssh-server-admin"
+    ],
+    "niche": [
+      "ralph-loop",
+      "ralph-monitor",
+      "audio-video",
+      "obsidian",
+      "markitdown"
+    ],
+    "framework_prp": [
+      "prp-framework",
+      "prp-generator",
+      "prp-wizard",
+      "prp-orchestrator-agent",
+      "prp-codebase-explorer-agent"
+    ],
+    "framework_harness": [
+      "autonomous-agent-harness",
+      "harness-coder",
+      "harness-initializer",
+      "harness-reviewer",
+      "harness-tester",
+      "harness-wizard"
+    ],
+    "framework_speckit": [
+      "speckit-wizard",
+      "speckit-workflow"
+    ],
+    "python_specific": [
+      "python-pro-agent",
+      "python-fastapi"
+    ]
+  },
+
+  "commands": {
+    "core": [
+      "start.md",
+      "end.md",
+      "status.md",
+      "next.md",
+      "save.md",
+      "sync.md",
+      "validate.md",
+      "fix.md",
+      "explain.md",
+      "convert.md",
+      "document.md",
+      "optimize.md",
+      "refactor.md",
+      "review.md",
+      "research.md",
+      "technology-research.md",
+      "security-review.md",
+      "git-commit.md",
+      "git-branch.md",
+      "git-diff.md",
+      "git-sync.md",
+      "actions-status.md",
+      "issue-create.md",
+      "pr-create.md",
+      "pr-review.md",
+      "generate-tests.md",
+      "new-project.md",
+      "project-create.md",
+      "project-wizard.md",
+      "task.md",
+      "data-model.md",
+      "api-contract.md",
+      "codespace-create.md",
+      "user-story.md",
+      "wizard-resume.md",
+      "wizard-status.md"
+    ],
+    "prp": [
+      "prp-prd.md",
+      "prp-plan.md",
+      "prp-implement.md",
+      "prp-review.md",
+      "prp-issue-investigate.md",
+      "prp-issue-fix.md",
+      "prp-debug.md"
+    ],
+    "harness": [
+      "harness-init.md",
+      "harness-next.md",
+      "harness-setup.md",
+      "harness-status.md"
+    ],
+    "spark": [
+      "spark-prototype.md",
+      "spark-teach.md"
+    ],
+    "worktree": [
+      "worktree-experiment.md",
+      "worktree-feature.md",
+      "worktree-review.md"
+    ]
+  },
+
   "languages": {
     "javascript": {
-      "gitignore": "templates/gitignore/node.gitignore"
+      "gitignore": "templates/gitignore/node.gitignore",
+      "skills": [],
+      "frameworks": {
+        "web-frontend": [
+          {"value": "react", "label": "React"},
+          {"value": "vue", "label": "Vue"},
+          {"value": "angular", "label": "Angular"},
+          {"value": "svelte", "label": "Svelte"}
+        ],
+        "backend-api": [
+          {"value": "express", "label": "Express"},
+          {"value": "hono", "label": "Hono"}
+        ],
+        "fullstack": [
+          {"value": "nextjs", "label": "Next.js"},
+          {"value": "nuxt", "label": "Nuxt"},
+          {"value": "remix", "label": "Remix"}
+        ],
+        "cli-library": [
+          {"value": "commander", "label": "Commander"}
+        ]
+      }
     },
     "typescript": {
-      "gitignore": "templates/gitignore/node.gitignore"
+      "gitignore": "templates/gitignore/node.gitignore",
+      "skills": ["zod-validation"],
+      "frameworks": {
+        "web-frontend": [
+          {"value": "react", "label": "React (Recommended)"},
+          {"value": "nextjs", "label": "Next.js"},
+          {"value": "vue", "label": "Vue"},
+          {"value": "svelte", "label": "Svelte"},
+          {"value": "angular", "label": "Angular"}
+        ],
+        "backend-api": [
+          {"value": "express", "label": "Express"},
+          {"value": "nestjs", "label": "NestJS"},
+          {"value": "hono", "label": "Hono"},
+          {"value": "fastify", "label": "Fastify"}
+        ],
+        "fullstack": [
+          {"value": "nextjs", "label": "Next.js (Recommended)"},
+          {"value": "t3-stack", "label": "T3 Stack"},
+          {"value": "remix", "label": "Remix"},
+          {"value": "nuxt", "label": "Nuxt"}
+        ],
+        "cli-library": [
+          {"value": "commander", "label": "Commander"},
+          {"value": "oclif", "label": "Oclif"}
+        ]
+      }
     },
     "python": {
-      "gitignore": "templates/gitignore/python.gitignore"
+      "gitignore": "templates/gitignore/python.gitignore",
+      "skills": ["python-pro-agent", "python-fastapi"],
+      "frameworks": {
+        "backend-api": [
+          {"value": "fastapi", "label": "FastAPI (Recommended)"},
+          {"value": "django", "label": "Django"},
+          {"value": "flask", "label": "Flask"}
+        ],
+        "fullstack": [
+          {"value": "django", "label": "Django"},
+          {"value": "fastapi", "label": "FastAPI + Frontend"}
+        ],
+        "cli-library": [
+          {"value": "click", "label": "Click/Typer"},
+          {"value": "argparse", "label": "Argparse"}
+        ],
+        "infrastructure": [
+          {"value": "terraform", "label": "Terraform (Recommended)"},
+          {"value": "pulumi", "label": "Pulumi"}
+        ]
+      }
     },
     "csharp": {
-      "gitignore": "templates/gitignore/dotnet.gitignore"
+      "gitignore": "templates/gitignore/dotnet.gitignore",
+      "skills": ["dotnet-csharp"],
+      "frameworks": {
+        "backend-api": [
+          {"value": "aspnet-core", "label": "ASP.NET Core (Recommended)"},
+          {"value": "minimal-api", "label": "Minimal API"}
+        ],
+        "fullstack": [
+          {"value": "blazor", "label": "Blazor"},
+          {"value": "aspnet-mvc", "label": "ASP.NET MVC"}
+        ],
+        "cli-library": [
+          {"value": "console-app", "label": "Console App"}
+        ]
+      }
     },
     "go": {
-      "gitignore": "templates/gitignore/go.gitignore"
+      "gitignore": "templates/gitignore/go.gitignore",
+      "skills": [],
+      "frameworks": {
+        "backend-api": [
+          {"value": "gin", "label": "Gin"},
+          {"value": "echo", "label": "Echo"},
+          {"value": "fiber", "label": "Fiber"}
+        ],
+        "cli-library": [
+          {"value": "cobra", "label": "Cobra"}
+        ],
+        "infrastructure": [
+          {"value": "terraform", "label": "Terraform"},
+          {"value": "pulumi", "label": "Pulumi"}
+        ]
+      }
     },
     "java": {
-      "gitignore": "templates/gitignore/java.gitignore"
+      "gitignore": "templates/gitignore/java.gitignore",
+      "skills": [],
+      "frameworks": {
+        "backend-api": [
+          {"value": "spring-boot", "label": "Spring Boot (Recommended)"},
+          {"value": "quarkus", "label": "Quarkus"},
+          {"value": "micronaut", "label": "Micronaut"}
+        ],
+        "fullstack": [
+          {"value": "spring-boot", "label": "Spring Boot + Thymeleaf"}
+        ]
+      }
+    },
+    "rust": {
+      "gitignore": "templates/gitignore/rust.gitignore",
+      "skills": [],
+      "frameworks": {
+        "backend-api": [
+          {"value": "actix", "label": "Actix Web"},
+          {"value": "axum", "label": "Axum"}
+        ],
+        "cli-library": [
+          {"value": "clap", "label": "Clap"}
+        ]
+      }
+    }
+  },
+
+  "frameworkSkills": {
+    "react": ["react-typescript", "state-management", "tanstack-query"],
+    "nextjs": ["nextjs-app-router", "react-typescript", "state-management"],
+    "vue": ["vue-typescript", "state-management"],
+    "svelte": ["svelte-kit"],
+    "fastapi": ["python-fastapi", "openapi-swagger"],
+    "django": [],
+    "express": [],
+    "nestjs": ["openapi-swagger"],
+    "aspnet-core": ["dotnet-csharp", "openapi-swagger"],
+    "t3-stack": ["react-typescript", "trpc-api", "prisma-orm", "nextjs-app-router", "zod-validation"],
+    "terraform": ["bicep"],
+    "docker-k8s": ["docker-compose", "kubernetes-helm"],
+    "prisma": ["prisma-orm"]
+  },
+
+  "languageOptions": {
+    "web-frontend": [
+      {"value": "typescript", "label": "TypeScript (Recommended)", "description": "JavaScript with static types - industry standard for frontend"},
+      {"value": "javascript", "label": "JavaScript", "description": "Dynamic typing, simpler setup"}
+    ],
+    "backend-api": [
+      {"value": "typescript", "label": "TypeScript", "description": "Node.js with types"},
+      {"value": "python", "label": "Python", "description": "FastAPI, Django, Flask ecosystem"},
+      {"value": "csharp", "label": "C# / .NET", "description": "Enterprise-grade ASP.NET Core"},
+      {"value": "go", "label": "Go", "description": "Fast, simple, great for microservices"},
+      {"value": "java", "label": "Java", "description": "Spring Boot, enterprise applications"},
+      {"value": "rust", "label": "Rust", "description": "Performance-critical APIs"}
+    ],
+    "fullstack": [
+      {"value": "typescript", "label": "TypeScript (Recommended)", "description": "Shared types across frontend and backend"},
+      {"value": "python", "label": "Python", "description": "Django/FastAPI backend + separate frontend"},
+      {"value": "csharp", "label": "C# / .NET", "description": "Blazor or ASP.NET MVC"}
+    ],
+    "cli-library": [
+      {"value": "typescript", "label": "TypeScript", "description": "npm packages, Node.js CLIs"},
+      {"value": "python", "label": "Python", "description": "PyPI packages, Click/Typer CLIs"},
+      {"value": "go", "label": "Go", "description": "Single binary, fast CLIs"},
+      {"value": "rust", "label": "Rust", "description": "High-performance CLIs and libraries"}
+    ],
+    "infrastructure": [
+      {"value": "python", "label": "Python (Recommended)", "description": "Scripting, Pulumi, automation"},
+      {"value": "go", "label": "Go", "description": "Terraform providers, CLI tools"},
+      {"value": "typescript", "label": "TypeScript", "description": "Pulumi, CDK, scripting"}
+    ]
+  },
+
+  "devFrameworks": {
+    "prp": {
+      "label": "PRP",
+      "description": "Product Requirement Planning (PRD -> Plan -> Implement)",
+      "skillGroup": "framework_prp",
+      "commandGroup": "prp"
+    },
+    "harness": {
+      "label": "Harness",
+      "description": "Autonomous Agent pipeline for greenfield projects",
+      "skillGroup": "framework_harness",
+      "commandGroup": "harness"
+    },
+    "speckit": {
+      "label": "SpecKit",
+      "description": "Specification-driven with verification checklists",
+      "skillGroup": "framework_speckit",
+      "commandGroup": null
+    },
+    "spark": {
+      "label": "Spark",
+      "description": "Quick prototyping and teaching",
+      "skillGroup": null,
+      "commandGroup": "spark"
+    },
+    "worktree": {
+      "label": "Worktree",
+      "description": "Git worktree-based parallel experiments",
+      "skillGroup": null,
+      "commandGroup": "worktree"
     }
   }
 }

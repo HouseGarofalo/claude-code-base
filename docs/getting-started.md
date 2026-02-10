@@ -75,25 +75,40 @@ cd claude-code-base
 
 ### Step 3: Follow the Prompts
 
-The wizard will ask for:
+The wizard guides you through several stages:
 
 1. **Parent directory**: Where to create the project (e.g., `E:\Repos`)
 2. **Project name**: Lowercase with hyphens (e.g., `my-awesome-app`)
 3. **Description**: Brief description of the project
 4. **Project type**: web-frontend, backend-api, fullstack, cli-library, or infrastructure
-5. **GitHub organization**: Your GitHub org or username
-6. **Repository visibility**: private or public
-7. **Archon integration**: Whether to set up task management
+5. **Primary language**: Options vary by project type (e.g., TypeScript, Python, C#, Go, Rust, Java)
+6. **Framework**: Options vary by type + language (e.g., React, FastAPI, Next.js, ASP.NET Core)
+7. **Development frameworks** (optional): PRP, Harness, SpecKit, Spark, Worktree
+8. **GitHub organization**: Your GitHub org or username
+9. **Repository visibility**: private or public
+10. **Archon integration**: Whether to set up task management
+
+### Selective Setup (v2.0)
+
+The wizard now performs **intelligent selective copying** based on your choices:
+
+- **Skills**: Only relevant skills are copied from 150+ available. For example, a Python backend project gets `core` + `backend` skills (~50), not all 150+.
+- **Commands**: Only matching command groups are copied. Dev framework commands (PRP, Harness, etc.) are included only if selected.
+- **README.md**: Generated from a project-type-specific template with your language and framework filled in.
+- **CLAUDE.md**: Generated from a template with conditional sections. PRP/Harness/SpecKit documentation is only included if those frameworks were selected.
+- **.gitignore**: Built from a base template plus language-specific rules (Python, Node.js, C#, Go, Rust, Java).
+- **template_profile**: Written to `.claude/config.yaml` to track your selections for future sync/update operations.
 
 ### What the Wizard Does
 
-1. Creates project directory with template files
-2. Initializes Git repository
-3. Installs pre-commit hooks
-4. Replaces placeholders in configuration files
-5. Creates GitHub repository (optional)
-6. Enables branch protection and secret scanning (optional)
-7. Prepares Archon project configuration
+1. Gathers project info, language, framework, and dev framework preferences
+2. Selectively copies only relevant skills and commands
+3. Generates project-specific README.md and CLAUDE.md
+4. Builds language-appropriate .gitignore
+5. Initializes Git repository and installs pre-commit hooks
+6. Creates GitHub repository with branch protection (optional)
+7. Prepares Archon project configuration (optional)
+8. Writes `template_profile` to config.yaml for sync tracking
 
 ### Wizard Options
 
@@ -107,12 +122,14 @@ The wizard will ask for:
 # Skip Archon setup
 .\scripts\setup-claude-code-project.ps1 -SkipArchon
 
-# Non-interactive mode
+# Non-interactive mode with language/framework
 .\scripts\setup-claude-code-project.ps1 -NonInteractive `
     -ParentPath "E:\Repos" `
     -ProjectName "my-api" `
     -GitHubOrg "MyOrg" `
-    -ProjectType "backend-api"
+    -ProjectType "backend-api" `
+    -PrimaryLanguage "python" `
+    -Framework "fastapi"
 ```
 
 ---
@@ -322,20 +339,37 @@ cd path/to/claude-code-base
 
 ### What Gets Synced
 
-- `.claude/` directory (commands, skills, config)
+**If your project has a `template_profile`** (created by the setup wizard v2.0):
+- Core `.claude/` config files (config.yaml, settings.json, hooks, context)
 - `.vscode/` directory (settings, MCP config)
+- **Only skills matching your declared `skill_groups`**
+- **Only commands matching your declared `command_groups`**
+- `.gitattributes` and `.pre-commit-config.yaml`
+- Sync, validation, and update scripts
+- `PRPs/` directory (only if PRP dev framework was selected)
+
+**If your project has no `template_profile`** (legacy projects):
+- Full `.claude/` directory (all skills, commands, config)
+- `.vscode/` directory
 - `CLAUDE.md`
-- `PRPs/` directory (templates)
-- `.gitattributes`
-- `.pre-commit-config.yaml`
+- `PRPs/` directory
+- `.gitattributes` and `.pre-commit-config.yaml`
 - Sync and validation scripts
 
 ### After Syncing
 
-1. Update placeholders in CLAUDE.md
-2. Configure `.claude/config.yaml`
+1. Update placeholders in CLAUDE.md (legacy projects only)
+2. Configure `.claude/config.yaml` (legacy projects only)
 3. Review and customize MCP servers
 4. Run validation: `.\scripts\validate-claude-code.ps1`
+
+### Adding Skills Later
+
+To add skills from the template that weren't included in your initial setup:
+
+1. Copy the desired skill folder from the template's `.claude/skills/` to your project
+2. Update `skill_groups` in your `.claude/config.yaml` template_profile to include the new group
+3. Future syncs will include the new skills automatically
 
 ---
 
@@ -357,6 +391,8 @@ Run the validation script to check your configuration:
 | Pre-commit config | gitleaks and detect-secrets configured |
 | CLAUDE.md placeholders | No unconfigured placeholders |
 | Archon connection | Project ID configured |
+| Template profile | `template_profile` section exists with required fields |
+| Dev framework consistency | Declared dev frameworks match directory structure |
 
 ### Fixing Issues
 
@@ -377,21 +413,30 @@ Run the validation script to check your configuration:
 Path: E:\Repos\my-project
 Fix Mode: False
 
-[1/8] Checking Required Directories...
+[1/10] Checking Required Directories...
 [PASS] All directories present
 
-[2/8] Checking Required Files...
+[2/10] Checking Required Files...
 [PASS] All files present
 
 ...
+
+[8/10] Validating Template Profile...
+[PASS] template_profile section found
+
+[9/10] Checking Dev Framework Consistency...
+[INFO] No dev frameworks declared
+
+[10/10] Generating Optimization Suggestions...
+[PASS] No optimization suggestions
 
 ========================================
  Validation Summary
 ========================================
 
 Assets Found:
-   Skills:   8
-   Commands: 9
+   Skills:   36
+   Commands: 36
 
 [PASS] All validation checks passed!
 ```

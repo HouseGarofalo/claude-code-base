@@ -5,12 +5,14 @@
 .DESCRIPTION
     This script provides an interactive wizard that guides users through creating
     a new project with:
-    - Project folder creation
-    - Template file copying
+    - Project folder creation with selective file copying
+    - Language and framework selection
+    - Only relevant skills and commands copied based on project type
     - Git initialization with pre-commit hooks
     - GitHub repository creation with branch protection and secret scanning
     - Archon project creation for task/document management
     - Placeholder replacement in CLAUDE.md and config.yaml
+    - Project-specific README generation
 
 .PARAMETER NonInteractive
     Run in non-interactive mode using provided parameters.
@@ -26,6 +28,15 @@
 
 .PARAMETER ProjectType
     Type of project (web-frontend, backend-api, fullstack, cli-library, infrastructure).
+
+.PARAMETER PrimaryLanguage
+    Primary programming language (typescript, python, csharp, go, java, rust, javascript).
+
+.PARAMETER Framework
+    Framework to use (react, nextjs, fastapi, express, etc.).
+
+.PARAMETER DevFrameworks
+    Development frameworks to include (prp, harness, speckit, spark, worktree).
 
 .PARAMETER GitHubOrg
     GitHub organization or username for the repository.
@@ -43,14 +54,14 @@
     .\setup-claude-code-project.ps1
 
 .EXAMPLE
-    .\setup-claude-code-project.ps1 -NonInteractive -ParentPath "E:\Repos" -ProjectName "my-api" -GitHubOrg "MyOrg"
+    .\setup-claude-code-project.ps1 -NonInteractive -ParentPath "E:\Repos" -ProjectName "my-api" -PrimaryLanguage "python" -Framework "fastapi" -GitHubOrg "MyOrg"
 
 .EXAMPLE
     .\setup-claude-code-project.ps1 -SkipArchon -SkipGitHub
 
 .NOTES
     Author: Claude Code Base
-    Version: 1.0.0
+    Version: 2.0.0
 #>
 
 [CmdletBinding()]
@@ -61,6 +72,9 @@ param(
     [string]$Description = "",
     [ValidateSet("web-frontend", "backend-api", "fullstack", "cli-library", "infrastructure")]
     [string]$ProjectType = "backend-api",
+    [string]$PrimaryLanguage,
+    [string]$Framework,
+    [string[]]$DevFrameworks = @(),
     [string]$GitHubOrg,
     [ValidateSet("private", "public")]
     [string]$Visibility = "private",
@@ -76,31 +90,6 @@ $ErrorActionPreference = "Stop"
 $ScriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 $TemplatePath = Split-Path -Parent $ScriptPath
 
-# Default patterns to exclude from copying
-$ExcludePatterns = @(
-    ".git",
-    ".git\*",
-    "node_modules",
-    "node_modules\*",
-    "__pycache__",
-    "__pycache__\*",
-    "*.pyc",
-    ".venv",
-    ".venv\*",
-    "venv",
-    "venv\*",
-    "bin",
-    "obj",
-    ".vs",
-    ".idea",
-    "*.log",
-    "*.tmp",
-    ".secrets.baseline",
-    "temp",
-    "temp\*",
-    "scripts\setup-claude-code-project.ps1"  # Don't copy this script itself
-)
-
 # ============================================================================
 # Helper Functions
 # ============================================================================
@@ -108,11 +97,11 @@ $ExcludePatterns = @(
 function Write-Banner {
     Write-Host ""
     Write-Host "======================================================================" -ForegroundColor Cyan
-    Write-Host "         Claude Code Base - Project Wizard                            " -ForegroundColor Cyan
+    Write-Host "         Claude Code Base - Project Wizard v2.0                       " -ForegroundColor Cyan
     Write-Host "======================================================================" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "  Create a new project with Claude Code best practices," -ForegroundColor Gray
-    Write-Host "  Archon integration, and GitHub configuration." -ForegroundColor Gray
+    Write-Host "  selective skills/commands, and Archon integration." -ForegroundColor Gray
     Write-Host ""
 }
 
@@ -194,6 +183,533 @@ function Get-UserInput {
     return $input
 }
 
+function Get-ManifestConfig {
+    $manifestPath = Join-Path $TemplatePath "templates\manifest.json"
+    if (-not (Test-Path $manifestPath)) {
+        Write-Status "Manifest not found at: $manifestPath" "ERROR"
+        exit 1
+    }
+    $content = Get-Content $manifestPath -Raw
+    return $content | ConvertFrom-Json
+}
+
+function Get-SelectedSkills {
+    param(
+        [object]$Manifest,
+        [string]$ProjectType,
+        [string]$Language,
+        [string]$Framework,
+        [string[]]$DevFrameworks
+    )
+
+    $selectedSkills = @()
+
+    # 1. Add skills from project type mapping
+    $skillGroups = @()
+    $mapping = $Manifest.projectTypeMapping
+    if ($mapping.PSObject.Properties.Name -contains $ProjectType) {
+        $groups = $mapping.$ProjectType
+        foreach ($group in $groups) {
+            $skillGroups += $group
+            if ($Manifest.skills.PSObject.Properties.Name -contains $group) {
+                $selectedSkills += @($Manifest.skills.$group)
+            }
+        }
+    }
+
+    # 2. Add language-specific skills
+    if ($Language -and $Manifest.languages.PSObject.Properties.Name -contains $Language) {
+        $langConfig = $Manifest.languages.$Language
+        if ($langConfig.skills) {
+            $selectedSkills += @($langConfig.skills)
+        }
+    }
+
+    # 3. Add framework-specific skills
+    if ($Framework -and $Manifest.frameworkSkills.PSObject.Properties.Name -contains $Framework) {
+        $selectedSkills += @($Manifest.frameworkSkills.$Framework)
+    }
+
+    # 4. Add dev framework skills
+    foreach ($df in $DevFrameworks) {
+        $groupName = "framework_$df"
+        if ($Manifest.skills.PSObject.Properties.Name -contains $groupName) {
+            $selectedSkills += @($Manifest.skills.$groupName)
+            $skillGroups += $groupName
+        }
+    }
+
+    # Deduplicate
+    $selectedSkills = $selectedSkills | Select-Object -Unique
+
+    return @{
+        Skills = $selectedSkills
+        Groups = ($skillGroups | Select-Object -Unique)
+    }
+}
+
+function Get-SelectedCommands {
+    param(
+        [object]$Manifest,
+        [string[]]$DevFrameworks
+    )
+
+    $selectedCommands = @()
+    $commandGroups = @("core")
+
+    # 1. Start with core commands
+    if ($Manifest.commands.PSObject.Properties.Name -contains "core") {
+        $selectedCommands += @($Manifest.commands.core)
+    }
+
+    # 2. Add dev framework commands
+    foreach ($df in $DevFrameworks) {
+        if ($Manifest.commands.PSObject.Properties.Name -contains $df) {
+            $selectedCommands += @($Manifest.commands.$df)
+            $commandGroups += $df
+        }
+    }
+
+    # Deduplicate
+    $selectedCommands = $selectedCommands | Select-Object -Unique
+
+    return @{
+        Commands = $selectedCommands
+        Groups = ($commandGroups | Select-Object -Unique)
+    }
+}
+
+function Copy-ProjectFiles {
+    param(
+        [string]$SourcePath,
+        [string]$DestinationPath,
+        [string[]]$SkillNames,
+        [string[]]$CommandFiles,
+        [string]$ProjectType,
+        [string]$Language,
+        [string[]]$DevFrameworks,
+        [object]$Manifest
+    )
+
+    $stats = @{
+        Copied = 0
+        Skipped = 0
+        Directories = 0
+    }
+
+    # Ensure destination exists
+    if (-not (Test-Path $DestinationPath)) {
+        New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
+    }
+
+    # --- 1. Create directory structure ---
+    $directories = @(
+        ".claude\skills",
+        ".claude\commands",
+        ".claude\context",
+        ".claude\hooks",
+        ".vscode",
+        ".github\workflows",
+        "src",
+        "tests",
+        "docs",
+        "scripts",
+        "temp"
+    )
+
+    foreach ($dir in $directories) {
+        $fullDir = Join-Path $DestinationPath $dir
+        if (-not (Test-Path $fullDir)) {
+            New-Item -ItemType Directory -Path $fullDir -Force | Out-Null
+            $stats.Directories++
+        }
+    }
+
+    # --- 2. Copy core .claude config files ---
+    $claudeFiles = @(
+        "config.yaml",
+        "SESSION_KNOWLEDGE.md",
+        "DEVELOPMENT_LOG.md",
+        "FAILED_ATTEMPTS.md",
+        "settings.json"
+    )
+
+    foreach ($file in $claudeFiles) {
+        $src = Join-Path $SourcePath ".claude\$file"
+        $dst = Join-Path $DestinationPath ".claude\$file"
+        if (Test-Path $src) {
+            Copy-Item -Path $src -Destination $dst -Force
+            $stats.Copied++
+        }
+    }
+
+    # Copy .claude/hooks/ directory
+    $hooksSource = Join-Path $SourcePath ".claude\hooks"
+    if (Test-Path $hooksSource) {
+        $hookFiles = Get-ChildItem -Path $hooksSource -File -Recurse -ErrorAction SilentlyContinue
+        foreach ($file in $hookFiles) {
+            $relativePath = $file.FullName.Substring($hooksSource.Length).TrimStart('\')
+            $dst = Join-Path $DestinationPath ".claude\hooks\$relativePath"
+            $parentDir = Split-Path $dst -Parent
+            if (-not (Test-Path $parentDir)) {
+                New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
+            }
+            Copy-Item -Path $file.FullName -Destination $dst -Force
+            $stats.Copied++
+        }
+    }
+
+    # Copy .claude/context/ directory
+    $contextSource = Join-Path $SourcePath ".claude\context"
+    if (Test-Path $contextSource) {
+        $contextFiles = Get-ChildItem -Path $contextSource -File -Recurse -ErrorAction SilentlyContinue
+        foreach ($file in $contextFiles) {
+            $relativePath = $file.FullName.Substring($contextSource.Length).TrimStart('\')
+            $dst = Join-Path $DestinationPath ".claude\context\$relativePath"
+            $parentDir = Split-Path $dst -Parent
+            if (-not (Test-Path $parentDir)) {
+                New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
+            }
+            Copy-Item -Path $file.FullName -Destination $dst -Force
+            $stats.Copied++
+        }
+    }
+
+    # --- 3. Copy .vscode files ---
+    $vscodeFiles = @("settings.json", "extensions.json")
+    foreach ($file in $vscodeFiles) {
+        $src = Join-Path $SourcePath ".vscode\$file"
+        $dst = Join-Path $DestinationPath ".vscode\$file"
+        if (Test-Path $src) {
+            Copy-Item -Path $src -Destination $dst -Force
+            $stats.Copied++
+        }
+    }
+
+    # --- 4. Copy root files ---
+    $rootFiles = @(
+        ".gitattributes",
+        ".pre-commit-config.yaml",
+        "CONTRIBUTING.md",
+        "SECURITY.md",
+        "CODEOWNERS",
+        "LICENSE"
+    )
+
+    foreach ($file in $rootFiles) {
+        $src = Join-Path $SourcePath $file
+        $dst = Join-Path $DestinationPath $file
+        if (Test-Path $src) {
+            Copy-Item -Path $src -Destination $dst -Force
+            $stats.Copied++
+        }
+    }
+
+    # --- 5. Copy .github/ directory ---
+    $githubSource = Join-Path $SourcePath ".github"
+    if (Test-Path $githubSource) {
+        $githubFiles = Get-ChildItem -Path $githubSource -File -Recurse -ErrorAction SilentlyContinue
+        foreach ($file in $githubFiles) {
+            $relativePath = $file.FullName.Substring($githubSource.Length).TrimStart('\')
+            $dst = Join-Path $DestinationPath ".github\$relativePath"
+            $parentDir = Split-Path $dst -Parent
+            if (-not (Test-Path $parentDir)) {
+                New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
+            }
+            Copy-Item -Path $file.FullName -Destination $dst -Force
+            $stats.Copied++
+        }
+    }
+
+    # --- 6. Build .gitignore ---
+    $baseGitignore = Join-Path $SourcePath ".gitignore"
+    $gitignoreContent = ""
+    if (Test-Path $baseGitignore) {
+        $gitignoreContent = Get-Content $baseGitignore -Raw
+    }
+
+    # Add language-specific gitignore
+    if ($Language -and $Manifest.languages.PSObject.Properties.Name -contains $Language) {
+        $langGitignore = $Manifest.languages.$Language.gitignore
+        if ($langGitignore) {
+            $langGitignorePath = Join-Path $SourcePath $langGitignore
+            if (Test-Path $langGitignorePath) {
+                $gitignoreContent += "`n`n# Language-specific ($Language)`n"
+                $gitignoreContent += Get-Content $langGitignorePath -Raw
+            }
+        }
+    }
+
+    Set-Content -Path (Join-Path $DestinationPath ".gitignore") -Value $gitignoreContent -NoNewline
+    $stats.Copied++
+
+    # --- 7. Copy selected skills ---
+    $skillsSource = Join-Path $SourcePath ".claude\skills"
+    foreach ($skillName in $SkillNames) {
+        $srcSkill = Join-Path $skillsSource $skillName
+        if (Test-Path $srcSkill -PathType Container) {
+            $dstSkill = Join-Path $DestinationPath ".claude\skills\$skillName"
+            if (-not (Test-Path $dstSkill)) {
+                New-Item -ItemType Directory -Path $dstSkill -Force | Out-Null
+                $stats.Directories++
+            }
+            $skillFiles = Get-ChildItem -Path $srcSkill -File -Recurse -ErrorAction SilentlyContinue
+            foreach ($file in $skillFiles) {
+                $relativePath = $file.FullName.Substring($srcSkill.Length).TrimStart('\')
+                $dst = Join-Path $dstSkill $relativePath
+                $parentDir = Split-Path $dst -Parent
+                if (-not (Test-Path $parentDir)) {
+                    New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
+                }
+                Copy-Item -Path $file.FullName -Destination $dst -Force
+                $stats.Copied++
+            }
+        }
+    }
+
+    # Copy skills README
+    $skillsReadme = Join-Path $skillsSource "README.md"
+    if (Test-Path $skillsReadme) {
+        Copy-Item -Path $skillsReadme -Destination (Join-Path $DestinationPath ".claude\skills\README.md") -Force
+        $stats.Copied++
+    }
+
+    # --- 8. Copy selected commands ---
+    $commandsSource = Join-Path $SourcePath ".claude\commands"
+    foreach ($cmdFile in $CommandFiles) {
+        $src = Join-Path $commandsSource $cmdFile
+        $dst = Join-Path $DestinationPath ".claude\commands\$cmdFile"
+        if (Test-Path $src) {
+            Copy-Item -Path $src -Destination $dst -Force
+            $stats.Copied++
+        }
+    }
+
+    # Copy commands README
+    $commandsReadme = Join-Path $commandsSource "README.md"
+    if (Test-Path $commandsReadme) {
+        Copy-Item -Path $commandsReadme -Destination (Join-Path $DestinationPath ".claude\commands\README.md") -Force
+        $stats.Copied++
+    }
+
+    # --- 9. Generate README from template ---
+    $readmeTemplate = Join-Path $SourcePath "templates\readme\$ProjectType.md"
+    if (Test-Path $readmeTemplate) {
+        Copy-Item -Path $readmeTemplate -Destination (Join-Path $DestinationPath "README.md") -Force
+        $stats.Copied++
+    }
+
+    # --- 10. Generate CLAUDE.md from template ---
+    $claudeMdTemplate = Join-Path $SourcePath "templates\claude-md\CLAUDE.md.template"
+    if (Test-Path $claudeMdTemplate) {
+        $claudeMdContent = Get-Content $claudeMdTemplate -Raw
+
+        # Process conditional sections
+        $devFrameworkNames = $DevFrameworks
+
+        # PRP section
+        if ($devFrameworkNames -contains "prp") {
+            $claudeMdContent = $claudeMdContent -replace '<!-- IF PRP -->', ''
+            $claudeMdContent = $claudeMdContent -replace '<!-- ENDIF PRP -->', ''
+        }
+        else {
+            $claudeMdContent = $claudeMdContent -replace '(?s)<!-- IF PRP -->.*?<!-- ENDIF PRP -->', ''
+        }
+
+        # HARNESS section
+        if ($devFrameworkNames -contains "harness") {
+            $claudeMdContent = $claudeMdContent -replace '<!-- IF HARNESS -->', ''
+            $claudeMdContent = $claudeMdContent -replace '<!-- ENDIF HARNESS -->', ''
+        }
+        else {
+            $claudeMdContent = $claudeMdContent -replace '(?s)<!-- IF HARNESS -->.*?<!-- ENDIF HARNESS -->', ''
+        }
+
+        # SPECKIT section
+        if ($devFrameworkNames -contains "speckit") {
+            $claudeMdContent = $claudeMdContent -replace '<!-- IF SPECKIT -->', ''
+            $claudeMdContent = $claudeMdContent -replace '<!-- ENDIF SPECKIT -->', ''
+        }
+        else {
+            $claudeMdContent = $claudeMdContent -replace '(?s)<!-- IF SPECKIT -->.*?<!-- ENDIF SPECKIT -->', ''
+        }
+
+        # Clean up multiple blank lines
+        $claudeMdContent = $claudeMdContent -replace '(\r?\n){4,}', "`n`n"
+
+        Set-Content -Path (Join-Path $DestinationPath "CLAUDE.md") -Value $claudeMdContent -NoNewline
+        $stats.Copied++
+    }
+    else {
+        # Fallback: copy existing CLAUDE.md
+        $fallbackClaude = Join-Path $SourcePath "CLAUDE.md"
+        if (Test-Path $fallbackClaude) {
+            Copy-Item -Path $fallbackClaude -Destination (Join-Path $DestinationPath "CLAUDE.md") -Force
+            $stats.Copied++
+        }
+    }
+
+    # --- 11. Copy PRPs/ only if PRP framework selected ---
+    if ($devFrameworkNames -contains "prp") {
+        $prpsSource = Join-Path $SourcePath "PRPs"
+        if (Test-Path $prpsSource) {
+            $prpsDest = Join-Path $DestinationPath "PRPs"
+            if (-not (Test-Path $prpsDest)) {
+                New-Item -ItemType Directory -Path $prpsDest -Force | Out-Null
+                $stats.Directories++
+            }
+            $prpFiles = Get-ChildItem -Path $prpsSource -File -Recurse -ErrorAction SilentlyContinue
+            foreach ($file in $prpFiles) {
+                $relativePath = $file.FullName.Substring($prpsSource.Length).TrimStart('\')
+                $dst = Join-Path $prpsDest $relativePath
+                $parentDir = Split-Path $dst -Parent
+                if (-not (Test-Path $parentDir)) {
+                    New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
+                }
+                Copy-Item -Path $file.FullName -Destination $dst -Force
+                $stats.Copied++
+            }
+        }
+    }
+
+    # --- 12. Copy scripts ---
+    $scriptFiles = @(
+        "sync-claude-code.ps1",
+        "validate-claude-code.ps1",
+        "update-project.ps1"
+    )
+
+    foreach ($file in $scriptFiles) {
+        $src = Join-Path $SourcePath "scripts\$file"
+        $dst = Join-Path $DestinationPath "scripts\$file"
+        if (Test-Path $src) {
+            Copy-Item -Path $src -Destination $dst -Force
+            $stats.Copied++
+        }
+    }
+
+    return $stats
+}
+
+function Replace-Placeholders {
+    param(
+        [string]$ProjectPath,
+        [string]$ProjectName,
+        [string]$ProjectTitle,
+        [string]$GitHubRepo,
+        [string]$ArchonProjectId,
+        [string]$CurrentDate,
+        [string]$PrimaryLanguage,
+        [string]$Framework,
+        [string]$Description,
+        [string]$GitHubOrg
+    )
+
+    $primaryStack = if ($Framework) { "$PrimaryLanguage, $Framework" } else { $PrimaryLanguage }
+
+    $placeholders = @{
+        "[ARCHON_PROJECT_ID]" = $ArchonProjectId
+        "[PROJECT_TITLE]"     = $ProjectTitle
+        "[PROJECT_NAME]"      = $ProjectName
+        "[GITHUB_REPO]"       = $GitHubRepo
+        "[REPOSITORY_PATH]"   = $ProjectPath
+        "[LOCAL_PATH]"        = $ProjectPath
+        "[DATE]"              = $CurrentDate
+        "[CREATION_DATE]"     = $CurrentDate
+        "[LAST_UPDATE]"       = $CurrentDate
+        "[TODAY_DATE]"        = $CurrentDate
+        "[PRIMARY_STACK]"     = $primaryStack
+        "[PRIMARY_LANGUAGE]"  = $PrimaryLanguage
+        "[PRIMARY_STRUCTURE]" = "src/"
+    }
+
+    # README template placeholders (double curly braces)
+    $readmePlaceholders = @{
+        "{{PROJECT_NAME}}"        = $ProjectName
+        "{{PROJECT_DESCRIPTION}}" = if ($Description) { $Description } else { "A new project created from claude-code-base" }
+        "{{ORG}}"                 = if ($GitHubOrg) { $GitHubOrg } else { "MyOrg" }
+        "{{LANGUAGE}}"            = $PrimaryLanguage
+        "{{FRAMEWORK}}"           = if ($Framework) { $Framework } else { "none" }
+    }
+
+    # Files to process for placeholder replacement
+    $filesToProcess = @(
+        "CLAUDE.md",
+        ".claude\config.yaml",
+        ".claude\SESSION_KNOWLEDGE.md",
+        ".claude\DEVELOPMENT_LOG.md",
+        "README.md",
+        "CODEOWNERS"
+    )
+
+    $replacedCount = 0
+
+    foreach ($relativePath in $filesToProcess) {
+        $filePath = Join-Path $ProjectPath $relativePath
+
+        if (Test-Path $filePath) {
+            $content = Get-Content $filePath -Raw -ErrorAction SilentlyContinue
+
+            if ($content) {
+                $originalContent = $content
+
+                foreach ($key in $placeholders.Keys) {
+                    $content = $content.Replace($key, $placeholders[$key])
+                }
+
+                foreach ($key in $readmePlaceholders.Keys) {
+                    $content = $content.Replace($key, $readmePlaceholders[$key])
+                }
+
+                if ($content -ne $originalContent) {
+                    Set-Content -Path $filePath -Value $content -NoNewline
+                    $replacedCount++
+                }
+            }
+        }
+    }
+
+    return $replacedCount
+}
+
+function Write-TemplateProfile {
+    param(
+        [string]$ProjectPath,
+        [string]$ProjectType,
+        [string]$Language,
+        [string]$Framework,
+        [string[]]$SkillGroups,
+        [string[]]$CommandGroups,
+        [string[]]$DevFrameworks
+    )
+
+    $configPath = Join-Path $ProjectPath ".claude\config.yaml"
+    if (-not (Test-Path $configPath)) {
+        return
+    }
+
+    $skillGroupsStr = ($SkillGroups | ForEach-Object { "`"$_`"" }) -join ", "
+    $commandGroupsStr = ($CommandGroups | ForEach-Object { "`"$_`"" }) -join ", "
+    $devFrameworksStr = if ($DevFrameworks.Count -gt 0) {
+        ($DevFrameworks | ForEach-Object { "`"$_`"" }) -join ", "
+    } else { "" }
+
+    $profileYaml = @"
+
+template_profile:
+  template_version: "2.0.0"
+  project_type: "$ProjectType"
+  primary_language: "$Language"
+  framework: "$Framework"
+  skill_groups: [$skillGroupsStr]
+  command_groups: [$commandGroupsStr]
+  dev_frameworks: [$devFrameworksStr]
+  created_with: "setup-claude-code-project.ps1"
+"@
+
+    Add-Content -Path $configPath -Value $profileYaml
+}
+
 function Test-Prerequisites {
     Write-Step 1 "Checking Prerequisites"
 
@@ -254,141 +770,14 @@ function Test-Prerequisites {
     return $allGood
 }
 
-function Test-ShouldExclude {
-    param(
-        [string]$RelativePath,
-        [string[]]$Patterns
-    )
-
-    foreach ($pattern in $Patterns) {
-        if ($RelativePath -like $pattern -or $RelativePath -like "*\$pattern" -or $RelativePath -like "*\$pattern\*") {
-            return $true
-        }
-    }
-    return $false
-}
-
-function Copy-TemplateFiles {
-    param(
-        [string]$SourcePath,
-        [string]$DestinationPath
-    )
-
-    # Ensure destination exists
-    if (-not (Test-Path $DestinationPath)) {
-        New-Item -ItemType Directory -Path $DestinationPath -Force | Out-Null
-    }
-
-    # Get all items from source
-    $sourceItems = Get-ChildItem -Path $SourcePath -Recurse -Force
-
-    # Track statistics
-    $stats = @{
-        Copied = 0
-        Skipped = 0
-        Directories = 0
-    }
-
-    foreach ($item in $sourceItems) {
-        # Calculate relative path
-        $relativePath = $item.FullName.Substring($SourcePath.Length).TrimStart('\')
-
-        # Check if should exclude
-        if (Test-ShouldExclude -RelativePath $relativePath -Patterns $ExcludePatterns) {
-            $stats.Skipped++
-            continue
-        }
-
-        $destinationItem = Join-Path $DestinationPath $relativePath
-
-        if ($item.PSIsContainer) {
-            # Create directory if it doesn't exist
-            if (-not (Test-Path $destinationItem)) {
-                New-Item -ItemType Directory -Path $destinationItem -Force | Out-Null
-                $stats.Directories++
-            }
-        }
-        else {
-            # Ensure parent directory exists
-            $parentDir = Split-Path $destinationItem -Parent
-            if (-not (Test-Path $parentDir)) {
-                New-Item -ItemType Directory -Path $parentDir -Force | Out-Null
-            }
-
-            # Copy file
-            Copy-Item -Path $item.FullName -Destination $destinationItem -Force
-            $stats.Copied++
-        }
-    }
-
-    return $stats
-}
-
-function Replace-Placeholders {
-    param(
-        [string]$ProjectPath,
-        [string]$ProjectName,
-        [string]$ProjectTitle,
-        [string]$GitHubRepo,
-        [string]$ArchonProjectId,
-        [string]$CurrentDate
-    )
-
-    $placeholders = @{
-        "[ARCHON_PROJECT_ID]" = $ArchonProjectId
-        "[PROJECT_TITLE]"     = $ProjectTitle
-        "[PROJECT_NAME]"      = $ProjectName
-        "[GITHUB_REPO]"       = $GitHubRepo
-        "[REPOSITORY_PATH]"   = $ProjectPath
-        "[LOCAL_PATH]"        = $ProjectPath
-        "[DATE]"              = $CurrentDate
-        "[CREATION_DATE]"     = $CurrentDate
-        "[LAST_UPDATE]"       = $CurrentDate
-        "[TODAY_DATE]"        = $CurrentDate
-        "[PRIMARY_STACK]"     = "TypeScript, Python"
-        "[PRIMARY_LANGUAGE]"  = "TypeScript"
-        "[PRIMARY_STRUCTURE]" = "src/"
-    }
-
-    # Files to process for placeholder replacement
-    $filesToProcess = @(
-        "CLAUDE.md",
-        ".claude\config.yaml",
-        ".claude\SESSION_KNOWLEDGE.md",
-        ".claude\DEVELOPMENT_LOG.md"
-    )
-
-    $replacedCount = 0
-
-    foreach ($relativePath in $filesToProcess) {
-        $filePath = Join-Path $ProjectPath $relativePath
-
-        if (Test-Path $filePath) {
-            $content = Get-Content $filePath -Raw -ErrorAction SilentlyContinue
-
-            if ($content) {
-                $originalContent = $content
-
-                foreach ($key in $placeholders.Keys) {
-                    $content = $content.Replace($key, $placeholders[$key])
-                }
-
-                if ($content -ne $originalContent) {
-                    Set-Content -Path $filePath -Value $content -NoNewline
-                    $replacedCount++
-                }
-            }
-        }
-    }
-
-    return $replacedCount
-}
-
 # ============================================================================
 # Main Script
 # ============================================================================
 
 Write-Banner
+
+# Load manifest
+$Manifest = Get-ManifestConfig
 
 # Check prerequisites
 if (-not (Test-Prerequisites)) {
@@ -430,6 +819,105 @@ if (-not $NonInteractive) {
     Write-Host ""
     $ProjectType = Get-UserInput -Prompt "Project type" -Default "backend-api" -ValidOptions @("web-frontend", "backend-api", "fullstack", "cli-library", "infrastructure")
 
+    # --- Language selection ---
+    Write-Host ""
+    Write-Host "  Primary language:" -ForegroundColor Gray
+    if ($Manifest.languageOptions.PSObject.Properties.Name -contains $ProjectType) {
+        $langOptions = $Manifest.languageOptions.$ProjectType
+        $validLangs = @()
+        $idx = 1
+        foreach ($opt in $langOptions) {
+            Write-Host "    $idx. $($opt.label)" -ForegroundColor Gray
+            Write-Host "       $($opt.description)" -ForegroundColor DarkGray
+            $validLangs += $opt.value
+            $idx++
+        }
+        $validLangs += "other"
+        Write-Host "    $idx. Other (specify)" -ForegroundColor Gray
+    }
+    else {
+        $validLangs = @("typescript", "python", "csharp", "go", "java", "rust", "javascript", "other")
+        foreach ($lang in $validLangs) {
+            Write-Host "    - $lang" -ForegroundColor Gray
+        }
+    }
+    Write-Host ""
+
+    $defaultLang = switch ($ProjectType) {
+        "web-frontend"   { "typescript" }
+        "fullstack"      { "typescript" }
+        "infrastructure" { "python" }
+        default          { "typescript" }
+    }
+
+    $PrimaryLanguage = Get-UserInput -Prompt "Primary language" -Default $defaultLang -ValidOptions $validLangs
+    if ($PrimaryLanguage -eq "other") {
+        $PrimaryLanguage = Get-UserInput -Prompt "Enter language name" -Required
+    }
+
+    # --- Framework selection ---
+    $frameworkOptions = @()
+    if ($Manifest.languages.PSObject.Properties.Name -contains $PrimaryLanguage) {
+        $langConfig = $Manifest.languages.$PrimaryLanguage
+        if ($langConfig.frameworks -and $langConfig.frameworks.PSObject.Properties.Name -contains $ProjectType) {
+            $frameworkOptions = @($langConfig.frameworks.$ProjectType)
+        }
+    }
+
+    if ($frameworkOptions.Count -gt 0) {
+        Write-Host ""
+        Write-Host "  Framework options:" -ForegroundColor Gray
+        $validFrameworks = @()
+        $idx = 1
+        foreach ($opt in $frameworkOptions) {
+            Write-Host "    $idx. $($opt.label)" -ForegroundColor Gray
+            $validFrameworks += $opt.value
+            $idx++
+        }
+        $validFrameworks += @("none", "other")
+        Write-Host "    $idx. None" -ForegroundColor Gray
+        Write-Host "    $($idx + 1). Other (specify)" -ForegroundColor Gray
+        Write-Host ""
+
+        $defaultFramework = if ($frameworkOptions.Count -gt 0) { $frameworkOptions[0].value } else { "none" }
+        $Framework = Get-UserInput -Prompt "Framework" -Default $defaultFramework -ValidOptions $validFrameworks
+        if ($Framework -eq "other") {
+            $Framework = Get-UserInput -Prompt "Enter framework name" -Required
+        }
+        if ($Framework -eq "none") {
+            $Framework = ""
+        }
+    }
+    else {
+        $Framework = ""
+    }
+
+    # --- Development framework selection ---
+    Write-Host ""
+    Write-Host "  Optional development frameworks:" -ForegroundColor Gray
+    Write-Host "    1. prp      - Product Requirement Planning (PRD -> Plan -> Implement)" -ForegroundColor Gray
+    Write-Host "    2. harness  - Autonomous Agent pipeline for greenfield projects" -ForegroundColor Gray
+    Write-Host "    3. speckit  - Specification-driven with verification checklists" -ForegroundColor Gray
+    Write-Host "    4. spark    - Quick prototyping and teaching" -ForegroundColor Gray
+    Write-Host "    5. worktree - Git worktree-based parallel experiments" -ForegroundColor Gray
+    Write-Host ""
+    $dfChoice = Get-UserInput -Prompt "Include frameworks (comma-separated numbers or names, or 'none')" -Default "none"
+
+    if ($dfChoice -ne "none" -and $dfChoice -ne "") {
+        $dfMap = @{ "1" = "prp"; "2" = "harness"; "3" = "speckit"; "4" = "spark"; "5" = "worktree" }
+        $DevFrameworks = @()
+        foreach ($item in ($dfChoice -split ',')) {
+            $item = $item.Trim()
+            if ($dfMap.ContainsKey($item)) {
+                $DevFrameworks += $dfMap[$item]
+            }
+            elseif ($item -in @("prp", "harness", "speckit", "spark", "worktree")) {
+                $DevFrameworks += $item
+            }
+        }
+    }
+
+    # --- GitHub configuration ---
     if (-not $SkipGitHub) {
         Write-Host ""
         Write-Host "  Available organizations:" -ForegroundColor Gray
@@ -458,13 +946,25 @@ if (-not $NonInteractive) {
     }
 }
 
+# Defaults for non-interactive mode
+if (-not $PrimaryLanguage) { $PrimaryLanguage = "typescript" }
+
 $ProjectPath = Join-Path $ParentPath $ProjectName
 $ProjectTitle = ($ProjectName -replace '-', ' ').ToUpper().Substring(0, 1) + ($ProjectName -replace '-', ' ').Substring(1)
 $GitHubRepo = if (-not $SkipGitHub -and $GitHubOrg) { "https://github.com/$GitHubOrg/$ProjectName" } else { "" }
 $CurrentDate = Get-Date -Format "yyyy-MM-dd"
 
-# Generate a placeholder Archon project ID (will be replaced if Archon is available)
+# Generate a placeholder Archon project ID
 $ArchonProjectId = if ($SkipArchon) { "NOT_CONFIGURED" } else { [guid]::NewGuid().ToString() }
+
+# Calculate selected skills and commands
+$skillResult = Get-SelectedSkills -Manifest $Manifest -ProjectType $ProjectType -Language $PrimaryLanguage -Framework $Framework -DevFrameworks $DevFrameworks
+$commandResult = Get-SelectedCommands -Manifest $Manifest -DevFrameworks $DevFrameworks
+
+$selectedSkills = $skillResult.Skills
+$skillGroups = $skillResult.Groups
+$selectedCommands = $commandResult.Commands
+$commandGroups = $commandResult.Groups
 
 Write-Step 3 "Configuration Summary"
 
@@ -478,6 +978,16 @@ Write-Host "  Title:          $ProjectTitle" -ForegroundColor White
 Write-Host "  Path:           $ProjectPath" -ForegroundColor White
 Write-Host "  Description:    $Description" -ForegroundColor White
 Write-Host "  Type:           $ProjectType" -ForegroundColor White
+Write-Host "  Language:       $PrimaryLanguage" -ForegroundColor White
+Write-Host "  Framework:      $(if ($Framework) { $Framework } else { '(none)' })" -ForegroundColor White
+if ($DevFrameworks.Count -gt 0) {
+    Write-Host "  Dev Frameworks: $($DevFrameworks -join ', ')" -ForegroundColor White
+}
+else {
+    Write-Host "  Dev Frameworks: (none)" -ForegroundColor Gray
+}
+Write-Host "  Skills:         $($selectedSkills.Count) selected" -ForegroundColor White
+Write-Host "  Commands:       $($selectedCommands.Count) selected" -ForegroundColor White
 if (-not $SkipGitHub -and $GitHubRepo) {
     Write-Host "  Repository:     $GitHubRepo" -ForegroundColor White
     Write-Host "  Visibility:     $Visibility" -ForegroundColor White
@@ -501,7 +1011,7 @@ if (-not $NonInteractive) {
     }
 }
 
-Write-Step 4 "Copying Template Files"
+Write-Step 4 "Copying Project Files (Selective)"
 
 # Check if project directory already exists
 if (Test-Path $ProjectPath) {
@@ -515,9 +1025,15 @@ if (Test-Path $ProjectPath) {
     }
 }
 
-Write-Status "Copying template files..." "WORKING"
-$stats = Copy-TemplateFiles -SourcePath $TemplatePath -DestinationPath $ProjectPath
-Write-Status "Files copied: $($stats.Copied), Directories: $($stats.Directories), Skipped: $($stats.Skipped)" "SUCCESS"
+Write-Status "Copying selected project files..." "WORKING"
+$stats = Copy-ProjectFiles -SourcePath $TemplatePath -DestinationPath $ProjectPath `
+    -SkillNames $selectedSkills -CommandFiles $selectedCommands `
+    -ProjectType $ProjectType -Language $PrimaryLanguage -DevFrameworks $DevFrameworks `
+    -Manifest $Manifest
+
+Write-Status "Files: $($stats.Copied) copied, $($stats.Directories) dirs created" "SUCCESS"
+Write-Status "Skills: $($selectedSkills.Count) copied (from groups: $($skillGroups -join ', '))" "SUCCESS"
+Write-Status "Commands: $($selectedCommands.Count) copied (from groups: $($commandGroups -join ', '))" "SUCCESS"
 
 Write-Step 5 "Initializing Git Repository"
 
@@ -548,7 +1064,7 @@ catch {
     Write-Status "Pre-commit installation failed (optional)" "WARNING"
 }
 
-Write-Step 7 "Replacing Placeholders"
+Write-Step 7 "Replacing Placeholders & Writing Profile"
 
 Write-Status "Replacing placeholders in configuration files..." "WORKING"
 $replacedCount = Replace-Placeholders -ProjectPath $ProjectPath `
@@ -556,9 +1072,24 @@ $replacedCount = Replace-Placeholders -ProjectPath $ProjectPath `
     -ProjectTitle $ProjectTitle `
     -GitHubRepo $GitHubRepo `
     -ArchonProjectId $ArchonProjectId `
-    -CurrentDate $CurrentDate
+    -CurrentDate $CurrentDate `
+    -PrimaryLanguage $PrimaryLanguage `
+    -Framework $Framework `
+    -Description $Description `
+    -GitHubOrg $GitHubOrg
 
 Write-Status "Updated $replacedCount configuration files" "SUCCESS"
+
+Write-Status "Writing template_profile to config.yaml..." "WORKING"
+Write-TemplateProfile -ProjectPath $ProjectPath `
+    -ProjectType $ProjectType `
+    -Language $PrimaryLanguage `
+    -Framework $Framework `
+    -SkillGroups $skillGroups `
+    -CommandGroups $commandGroups `
+    -DevFrameworks $DevFrameworks
+
+Write-Status "Template profile written" "SUCCESS"
 
 # Create initial commit
 Write-Status "Creating initial commit..." "WORKING"
@@ -670,15 +1201,24 @@ Write-Host "Location:      $ProjectPath" -ForegroundColor Cyan
 if ($GitHubRepo) {
     Write-Host "Repository:    $GitHubRepo" -ForegroundColor Cyan
 }
+Write-Host "Language:      $PrimaryLanguage" -ForegroundColor Cyan
+if ($Framework) {
+    Write-Host "Framework:     $Framework" -ForegroundColor Cyan
+}
 Write-Host ""
 
 Write-Host "What's configured:" -ForegroundColor Green
-Write-Host "   [OK] Pre-configured .gitignore" -ForegroundColor White
+Write-Host "   [OK] Skills:   $($selectedSkills.Count) (groups: $($skillGroups -join ', '))" -ForegroundColor White
+Write-Host "   [OK] Commands:  $($selectedCommands.Count) (groups: $($commandGroups -join ', '))" -ForegroundColor White
+Write-Host "   [OK] Project-specific README.md" -ForegroundColor White
+Write-Host "   [OK] CLAUDE.md with relevant sections" -ForegroundColor White
+Write-Host "   [OK] Pre-configured .gitignore ($PrimaryLanguage)" -ForegroundColor White
 Write-Host "   [OK] Pre-commit hooks with secret detection" -ForegroundColor White
-Write-Host "   [OK] CLAUDE.md with Archon integration" -ForegroundColor White
-Write-Host "   [OK] .claude/config.yaml project configuration" -ForegroundColor White
-Write-Host "   [OK] Session knowledge and development log templates" -ForegroundColor White
+Write-Host "   [OK] .claude/config.yaml with template_profile" -ForegroundColor White
 Write-Host "   [OK] VS Code settings with MCP configuration" -ForegroundColor White
+if ($DevFrameworks.Count -gt 0) {
+    Write-Host "   [OK] Dev frameworks: $($DevFrameworks -join ', ')" -ForegroundColor White
+}
 if (-not $SkipGitHub -and $GitHubRepo) {
     Write-Host "   [OK] GitHub repository with branch protection" -ForegroundColor White
     Write-Host "   [OK] Secret scanning enabled" -ForegroundColor White

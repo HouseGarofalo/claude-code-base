@@ -26,26 +26,36 @@ Claude Code Base provides a standardized foundation for Claude Code projects. It
 
 ### Project Setup (`setup-claude-code-project.ps1`)
 
-Interactive wizard that configures a new project with:
-- `.claude/` directory structure with CLAUDE.md and settings.json
-- Pre-commit hooks for security scanning
-- Git configuration with proper line endings
-- Optional Archon project integration
+Interactive wizard that creates tailored projects based on your choices:
+- Asks for **project type**, **language**, **framework**, and optional **dev frameworks** (PRP, Harness, SpecKit, etc.)
+- **Selectively copies** only relevant skills and commands from 150+ available
+- Generates project-specific **README.md** and **CLAUDE.md** from templates
+- Builds language-appropriate `.gitignore` (Python, Node.js, C#, Go, Rust, Java)
+- Writes a `template_profile` to `.claude/config.yaml` for future sync/update tracking
+- Pre-commit hooks for security scanning, Git configuration, optional GitHub repo and Archon integration
 
 ### Sync Functionality (`sync-claude-code.ps1`)
 
 Keep projects synchronized with the base template:
-- Pull latest configurations and best practices
-- Merge updates without overwriting local customizations
-- Selective sync for specific components
+- **Selective sync**: reads `template_profile` to sync only skills/commands matching your project
+- **Legacy support**: falls back to full sync for projects without a profile
+- Pull latest configurations and best practices with automatic backup
+
+### Update Functionality (`update-project.ps1`)
+
+Selective updates from the template:
+- Update specific groups: `skills`, `commands`, `claude-config`, `vscode`, `prps`, `scripts`, `docs`, `github`
+- Template profile-aware: only updates skills/commands in your declared groups
+- Version comparison and diff before applying changes
 
 ### Validation (`validate-claude-code.ps1`)
 
 Verify project configuration meets standards:
-- Check required files exist
-- Validate CLAUDE.md structure
-- Ensure pre-commit hooks are installed
-- Report compliance status
+- Check required files and directories exist
+- Validate JSON syntax and CLAUDE.md placeholders
+- **Validate template_profile** section and consistency
+- Check dev framework consistency (e.g., PRP declared but PRPs/ missing)
+- Report compliance status with optimization suggestions
 
 ---
 
@@ -62,10 +72,20 @@ cd claude-code-base
 .\scripts\setup-claude-code-project.ps1
 ```
 
+The wizard guides you through:
+1. Project basics (name, location, description)
+2. **Project type** (web-frontend, backend-api, fullstack, cli-library, infrastructure)
+3. **Language** (TypeScript, Python, C#, Go, Rust, Java - options vary by project type)
+4. **Framework** (React, FastAPI, Next.js, etc. - options vary by type + language)
+5. **Dev frameworks** (optional: PRP, Harness, SpecKit, Spark, Worktree)
+6. GitHub repository and Archon integration
+
+Only relevant skills and commands are copied based on your selections.
+
 ### Option 2: Manual Setup
 
 1. Copy the template files to your project
-2. Customize `.claude/CLAUDE.md` for your project
+2. Customize `CLAUDE.md` for your project
 3. Install pre-commit hooks: `pre-commit install`
 4. Run validation: `.\scripts\validate-claude-code.ps1`
 

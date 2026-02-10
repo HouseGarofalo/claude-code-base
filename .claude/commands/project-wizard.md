@@ -127,6 +127,15 @@ wizard_state = {
 
 ## Phase 2: Project Basics (Common to All Frameworks)
 
+**FIRST: Check if template_profile already exists in `.claude/config.yaml`**
+
+If the project was created by `setup-claude-code-project.ps1`, a `template_profile` section will exist with `project_type`, `primary_language`, and `framework` already set. In this case:
+- Skip language/framework questions (already answered during setup)
+- Read values from `template_profile` and display them
+- Continue to Phase 3 with pre-filled values
+
+If no `template_profile` exists, ask all questions:
+
 ```
 PROJECT WIZARD - PROJECT BASICS
 ===============================
@@ -150,7 +159,6 @@ PROJECT IDENTITY
    [ ] cli-tool        - Command-line application
    [ ] library         - Reusable package/module
    [ ] infrastructure  - IaC, DevOps tooling
-   [ ] monorepo        - Multi-project repository
 
 REPOSITORY SETUP
 ----------------

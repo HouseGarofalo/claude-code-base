@@ -25,10 +25,10 @@
 
 ### Features
 
-- Zero dependencies
-- TypeScript support
-- Tree-shakeable
+- Built with {{LANGUAGE}}
 - Full test coverage
+- Well-documented API
+- Minimal dependencies
 
 ---
 

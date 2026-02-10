@@ -37,11 +37,10 @@
 
 | Category | Technology |
 |----------|------------|
-| **Framework** | React / Vue / Angular |
-| **Language** | TypeScript |
-| **Styling** | Tailwind CSS / Styled Components |
-| **State** | Zustand / Redux / Pinia |
-| **Build** | Vite / Next.js / Nuxt |
+| **Language** | {{LANGUAGE}} |
+| **Framework** | {{FRAMEWORK}} |
+| **Styling** | Tailwind CSS / CSS Modules |
+| **State** | Customize per framework |
 | **Testing** | Vitest / Jest / Playwright |
 
 ---

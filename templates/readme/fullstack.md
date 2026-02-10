@@ -36,23 +36,12 @@
 
 ## Tech Stack
 
-### Frontend
-
 | Category | Technology |
 |----------|------------|
-| **Framework** | React / Next.js / Vue |
-| **Language** | TypeScript |
+| **Language** | {{LANGUAGE}} |
+| **Framework** | {{FRAMEWORK}} |
 | **Styling** | Tailwind CSS |
-| **State** | Zustand / TanStack Query |
-
-### Backend
-
-| Category | Technology |
-|----------|------------|
-| **Runtime** | Node.js |
-| **Framework** | Express / tRPC / Fastify |
 | **Database** | PostgreSQL / MongoDB |
-| **ORM** | Prisma / Drizzle |
 
 ---
 

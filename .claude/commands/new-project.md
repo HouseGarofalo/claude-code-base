@@ -21,9 +21,11 @@ Please provide the following information:
 
 1. Project Title: [human-readable name]
 2. Project Description: [brief description of the project]
-3. GitHub Repository URL: [optional - leave blank if not on GitHub]
-4. Primary Languages: [e.g., python, typescript, go]
-5. Default Assignee: [Claude Code / User / specific name]
+3. Project Type: [web-frontend, backend-api, fullstack, cli-library, infrastructure]
+4. Primary Language: [typescript, python, csharp, go, java, rust]
+5. Framework: [react, fastapi, nextjs, express, etc. - based on type + language]
+6. GitHub Repository URL: [optional - leave blank if not on GitHub]
+7. Default Assignee: [Claude Code / User / specific name]
 ```
 
 ### Step 2: Check Current State
@@ -80,7 +82,6 @@ default_assignee: "[selected assignee]"
 
 languages:
   - [language1]
-  - [language2]
 
 feature_labels:
   - core
@@ -88,6 +89,16 @@ feature_labels:
   - testing
   - infrastructure
   - bugfix
+
+template_profile:
+  template_version: "2.0.0"
+  project_type: "[project type]"
+  primary_language: "[language]"
+  framework: "[framework]"
+  skill_groups: ["core", "[other groups based on project type]"]
+  command_groups: ["core"]
+  dev_frameworks: []
+  created_with: "new-project-command"
 ```
 
 ### Step 5: Initialize Context Files

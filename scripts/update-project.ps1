@@ -39,7 +39,7 @@
 
 .NOTES
     Author: Claude Code Base
-    Version: 1.0.0
+    Version: 2.0.0
 #>
 
 [CmdletBinding()]
@@ -47,7 +47,7 @@ param(
     [Parameter(Mandatory = $false)]
     [string]$TargetPath,
 
-    [ValidateSet("all", "claude-config", "vscode", "prps", "scripts", "docs", "github")]
+    [ValidateSet("all", "claude-config", "skills", "commands", "vscode", "prps", "scripts", "docs", "github")]
     [string]$UpdateType = "all",
 
     [switch]$DryRun,
@@ -64,11 +64,20 @@ $ErrorActionPreference = "Continue"
 $ScriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 $TemplatePath = Split-Path -Parent $ScriptPath
 
-# Update groups
+# Update groups (skills and commands are now separate groups)
 $UpdateGroups = @{
     "claude-config" = @(
-        @{ Source = ".claude"; Type = "Directory"; Critical = $true }
+        @{ Source = ".claude\config.yaml"; Type = "File"; Critical = $true }
+        @{ Source = ".claude\settings.json"; Type = "File"; Critical = $true }
+        @{ Source = ".claude\context"; Type = "Directory"; Critical = $false }
+        @{ Source = ".claude\hooks"; Type = "Directory"; Critical = $false }
         @{ Source = "CLAUDE.md"; Type = "File"; Critical = $true }
+    )
+    "skills" = @(
+        @{ Source = ".claude\skills"; Type = "Directory"; Critical = $false }
+    )
+    "commands" = @(
+        @{ Source = ".claude\commands"; Type = "Directory"; Critical = $false }
     )
     "vscode" = @(
         @{ Source = ".vscode"; Type = "Directory"; Critical = $false }
@@ -80,7 +89,6 @@ $UpdateGroups = @{
         @{ Source = "scripts\sync-claude-code.ps1"; Type = "File"; Critical = $false }
         @{ Source = "scripts\validate-claude-code.ps1"; Type = "File"; Critical = $false }
         @{ Source = "scripts\update-project.ps1"; Type = "File"; Critical = $false }
-        @{ Source = "scripts\stats.ps1"; Type = "File"; Critical = $false }
     )
     "docs" = @(
         @{ Source = "docs"; Type = "Directory"; Critical = $false }
@@ -93,7 +101,7 @@ $UpdateGroups = @{
 }
 
 # Version tracking
-$TemplateVersion = "1.0.0"
+$TemplateVersion = "2.0.0"
 
 # Statistics
 $script:Stats = @{
@@ -374,6 +382,92 @@ function Update-Directory {
     }
 }
 
+function Get-TemplateProfile {
+    <#
+    .SYNOPSIS
+        Reads template_profile from target project's .claude/config.yaml.
+    #>
+    param([string]$ProjectPath)
+
+    $configPath = Join-Path $ProjectPath ".claude\config.yaml"
+    if (-not (Test-Path $configPath)) { return $null }
+
+    $content = Get-Content $configPath -Raw -ErrorAction SilentlyContinue
+    if (-not $content -or $content -notmatch 'template_profile:') { return $null }
+
+    $profile = @{}
+
+    if ($content -match 'template_version:\s*[''"]?([^''"}\s,\]]+)') { $profile.template_version = $Matches[1] }
+    if ($content -match 'project_type:\s*[''"]?([^''"}\s,\]]+)') { $profile.project_type = $Matches[1] }
+    if ($content -match 'primary_language:\s*[''"]?([^''"}\s,\]]+)') { $profile.primary_language = $Matches[1] }
+    if ($content -match 'framework:\s*[''"]?([^''"}\s,\]]+)') { $profile.framework = $Matches[1] }
+
+    if ($content -match 'skill_groups:\s*\[([^\]]+)\]') {
+        $profile.skill_groups = ($Matches[1] -replace '[''"]', '').Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+    }
+    if ($content -match 'command_groups:\s*\[([^\]]+)\]') {
+        $profile.command_groups = ($Matches[1] -replace '[''"]', '').Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+    }
+    if ($content -match 'dev_frameworks:\s*\[([^\]]*)\]') {
+        $rawValue = $Matches[1] -replace '[''"]', ''
+        $profile.dev_frameworks = if ($rawValue.Trim()) {
+            $rawValue.Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+        } else { @() }
+    }
+
+    return $profile
+}
+
+function Get-ManifestConfig {
+    $manifestPath = Join-Path $TemplatePath "templates\manifest.json"
+    if (-not (Test-Path $manifestPath)) { return $null }
+    return (Get-Content $manifestPath -Raw | ConvertFrom-Json)
+}
+
+function Build-SelectiveUpdateItems {
+    <#
+    .SYNOPSIS
+        Builds selective update items for skills and commands based on template_profile.
+    #>
+    param(
+        [string]$UpdateType,
+        $Profile,
+        $Manifest
+    )
+
+    $items = @()
+
+    # For skills update type, build individual skill items
+    if ($UpdateType -eq "skills" -or $UpdateType -eq "all") {
+        $selectedSkills = @()
+        foreach ($group in $Profile.skill_groups) {
+            $groupSkills = $Manifest.skills.$group
+            if ($groupSkills) { $selectedSkills += @($groupSkills) }
+        }
+        $selectedSkills = $selectedSkills | Sort-Object -Unique
+
+        foreach ($skill in $selectedSkills) {
+            $items += @{ Source = ".claude\skills\$skill"; Type = "Directory"; Critical = $false }
+        }
+    }
+
+    # For commands update type, build individual command items
+    if ($UpdateType -eq "commands" -or $UpdateType -eq "all") {
+        $selectedCommands = @()
+        foreach ($group in $Profile.command_groups) {
+            $groupCommands = $Manifest.commands.$group
+            if ($groupCommands) { $selectedCommands += @($groupCommands) }
+        }
+        $selectedCommands = $selectedCommands | Sort-Object -Unique
+
+        foreach ($cmd in $selectedCommands) {
+            $items += @{ Source = ".claude\commands\$cmd.md"; Type = "File"; Critical = $false }
+        }
+    }
+
+    return $items
+}
+
 # ============================================================================
 # Main Script
 # ============================================================================
@@ -416,12 +510,47 @@ if ($comparison -eq "same" -and -not $Force) {
 
 Write-Step 3 "Update Selection"
 
+# Check for template_profile for selective updates
+$templateProfile = Get-TemplateProfile -ProjectPath $TargetPath
+$manifest = Get-ManifestConfig
+$updateMode = "legacy"
+
+if ($templateProfile -and $manifest) {
+    $updateMode = "selective"
+    Write-Status "Template profile found - selective update mode" "SUCCESS"
+    Write-Host "    Project: $($templateProfile.project_type) / $($templateProfile.primary_language)" -ForegroundColor Cyan
+} else {
+    Write-Status "No template profile - full update mode" "INFO"
+}
+
 # Determine what to update
 $itemsToUpdate = @()
 
 if ($UpdateType -eq "all") {
     foreach ($group in $UpdateGroups.Keys) {
+        # For selective mode, replace skills/commands groups with filtered versions
+        if ($updateMode -eq "selective" -and ($group -eq "skills" -or $group -eq "commands")) {
+            continue  # Will be added below
+        }
         $itemsToUpdate += $UpdateGroups[$group]
+    }
+
+    # In selective mode, add filtered skills and commands
+    if ($updateMode -eq "selective") {
+        $selectiveItems = Build-SelectiveUpdateItems -UpdateType "all" -Profile $templateProfile -Manifest $manifest
+        $itemsToUpdate += $selectiveItems
+    }
+}
+elseif ($UpdateType -eq "skills" -or $UpdateType -eq "commands") {
+    if ($updateMode -eq "selective") {
+        # Use filtered items
+        $selectiveItems = Build-SelectiveUpdateItems -UpdateType $UpdateType -Profile $templateProfile -Manifest $manifest
+        $itemsToUpdate = $selectiveItems
+    } else {
+        # Legacy: use full directory
+        if ($UpdateGroups.ContainsKey($UpdateType)) {
+            $itemsToUpdate = $UpdateGroups[$UpdateType]
+        }
     }
 }
 else {
@@ -435,6 +564,7 @@ else {
 }
 
 Write-Host "  Update Type: $UpdateType" -ForegroundColor Cyan
+Write-Host "  Update Mode: $updateMode" -ForegroundColor Cyan
 Write-Host "  Items:       $($itemsToUpdate.Count)" -ForegroundColor White
 Write-Host ""
 
