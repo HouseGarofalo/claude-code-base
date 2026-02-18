@@ -1187,6 +1187,43 @@ $profileYaml
 # Prerequisite Check
 # ============================================================================
 
+function Initialize-TargetStructure {
+    <#
+    .SYNOPSIS
+        Ensures the target project has all required directories before sync.
+        Creates missing directories so that scanning and copying operations
+        do not encounter null path errors.
+    #>
+    param(
+        [string]$TargetPath,
+        [switch]$DryRun
+    )
+
+    $requiredDirs = @(
+        ".claude",
+        ".claude\skills",
+        ".claude\commands",
+        ".claude\context",
+        ".claude\hooks",
+        ".vscode",
+        "scripts",
+        "temp"
+    )
+
+    $created = 0
+    foreach ($dir in $requiredDirs) {
+        $fullPath = Join-Path $TargetPath $dir
+        if (-not (Test-Path $fullPath -PathType Container)) {
+            if (-not $DryRun) {
+                New-Item -ItemType Directory -Path $fullPath -Force | Out-Null
+            }
+            $created++
+        }
+    }
+
+    return $created
+}
+
 function Test-Prerequisites {
     Write-Step "0" "Checking Prerequisites"
 
@@ -1411,6 +1448,12 @@ Write-Status "Source: $TemplatePath" "INFO"
 if ($DryRun) {
     Write-Host ""
     Write-Host "  [!] DRY RUN MODE - No changes will be made" -ForegroundColor Magenta
+}
+
+# --- Initialize target directory structure ---
+$dirsCreated = Initialize-TargetStructure -TargetPath $TargetPath -DryRun:$DryRun
+if ($dirsCreated -gt 0) {
+    Write-Status "Initialized $dirsCreated missing directories in target" "ADD"
 }
 
 # --- Step 1: Load Target State ---
