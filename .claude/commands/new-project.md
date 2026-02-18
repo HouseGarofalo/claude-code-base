@@ -21,7 +21,7 @@ Please provide the following information:
 
 1. Project Title: [human-readable name]
 2. Project Description: [brief description of the project]
-3. Project Type: [web-frontend, backend-api, fullstack, cli-library, infrastructure]
+3. Project Type: [web-frontend, backend-api, fullstack, cli-library, infrastructure, power-platform]
 4. Primary Language: [typescript, python, csharp, go, java, rust]
 5. Framework: [react, fastapi, nextjs, express, etc. - based on type + language]
 6. GitHub Repository URL: [optional - leave blank if not on GitHub]

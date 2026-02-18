@@ -106,6 +106,11 @@
       "description": "Terraform, Docker, Kubernetes, or other IaC",
       "additionalGitignore": null,
       "readme": "templates/readme/infrastructure.md"
+    },
+    "power-platform": {
+      "description": "Power Apps, Power Automate, Copilot Studio, Dataverse, PCF controls",
+      "additionalGitignore": "templates/gitignore/power-platform.gitignore",
+      "readme": "templates/readme/power-platform.md"
     }
   },
 
@@ -114,7 +119,8 @@
     "backend-api": ["core", "backend"],
     "fullstack": ["core", "frontend", "backend"],
     "cli-library": ["core"],
-    "infrastructure": ["core", "cloud_infra"]
+    "infrastructure": ["core", "cloud_infra"],
+    "power-platform": ["core", "power_platform"]
   },
 
   "skills": {
@@ -278,6 +284,18 @@
       "zigbee2mqtt",
       "ssh-server-admin"
     ],
+    "power_platform": [
+      "power-platform",
+      "power-apps",
+      "copilot-studio",
+      "dataverse",
+      "power-automate",
+      "microsoft-fabric",
+      "microsoft-365-agents-toolkit",
+      "azure-devops-pipelines",
+      "mssql-mcp",
+      "dotnet-csharp"
+    ],
     "niche": [
       "ralph-loop",
       "ralph-monitor",
@@ -426,6 +444,10 @@
         "cli-library": [
           {"value": "commander", "label": "Commander"},
           {"value": "oclif", "label": "Oclif"}
+        ],
+        "power-platform": [
+          {"value": "pcf-controls", "label": "PCF Controls (Recommended)"},
+          {"value": "power-pages", "label": "Power Pages"}
         ]
       }
     },
@@ -466,6 +488,10 @@
         ],
         "cli-library": [
           {"value": "console-app", "label": "Console App"}
+        ],
+        "power-platform": [
+          {"value": "dataverse-plugins", "label": "Dataverse Plugins"},
+          {"value": "dataverse-sdk", "label": "Dataverse SDK"}
         ]
       }
     },
@@ -529,7 +555,11 @@
     "t3-stack": ["react-typescript", "trpc-api", "prisma-orm", "nextjs-app-router", "zod-validation"],
     "terraform": ["bicep"],
     "docker-k8s": ["docker-compose", "kubernetes-helm"],
-    "prisma": ["prisma-orm"]
+    "prisma": ["prisma-orm"],
+    "pcf-controls": ["react-typescript", "component-library"],
+    "power-pages": [],
+    "dataverse-plugins": ["dotnet-csharp"],
+    "dataverse-sdk": ["dotnet-csharp"]
   },
 
   "languageOptions": {
@@ -560,6 +590,10 @@
       {"value": "python", "label": "Python (Recommended)", "description": "Scripting, Pulumi, automation"},
       {"value": "go", "label": "Go", "description": "Terraform providers, CLI tools"},
       {"value": "typescript", "label": "TypeScript", "description": "Pulumi, CDK, scripting"}
+    ],
+    "power-platform": [
+      {"value": "typescript", "label": "TypeScript (Recommended)", "description": "PCF controls, Power Pages, web resources"},
+      {"value": "csharp", "label": "C# / .NET", "description": "Dataverse plugins, custom workflow activities, SDKs"}
     ]
   },
 

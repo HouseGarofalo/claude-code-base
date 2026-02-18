@@ -78,7 +78,7 @@ cd claude-code-base
 
 The wizard guides you through:
 1. Project basics (name, location, description)
-2. **Project type** (web-frontend, backend-api, fullstack, cli-library, infrastructure)
+2. **Project type** (web-frontend, backend-api, fullstack, cli-library, infrastructure, power-platform)
 3. **Language** (TypeScript, Python, C#, Go, Rust, Java - options vary by project type)
 4. **Framework** (React, FastAPI, Next.js, etc. - options vary by type + language)
 5. **Dev frameworks** (optional: PRP, Harness, SpecKit, Spark, Worktree)

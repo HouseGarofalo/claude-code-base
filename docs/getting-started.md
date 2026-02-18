@@ -80,7 +80,7 @@ The wizard guides you through several stages:
 1. **Parent directory**: Where to create the project (e.g., `E:\Repos`)
 2. **Project name**: Lowercase with hyphens (e.g., `my-awesome-app`)
 3. **Description**: Brief description of the project
-4. **Project type**: web-frontend, backend-api, fullstack, cli-library, or infrastructure
+4. **Project type**: web-frontend, backend-api, fullstack, cli-library, infrastructure, or power-platform
 5. **Primary language**: Options vary by project type (e.g., TypeScript, Python, C#, Go, Rust, Java)
 6. **Framework**: Options vary by type + language (e.g., React, FastAPI, Next.js, ASP.NET Core)
 7. **Development frameworks** (optional): PRP, Harness, SpecKit, Spark, Worktree

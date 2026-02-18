@@ -27,7 +27,7 @@
     Brief description of the project.
 
 .PARAMETER ProjectType
-    Type of project (web-frontend, backend-api, fullstack, cli-library, infrastructure).
+    Type of project (web-frontend, backend-api, fullstack, cli-library, infrastructure, power-platform).
 
 .PARAMETER PrimaryLanguage
     Primary programming language (typescript, python, csharp, go, java, rust, javascript).
@@ -70,7 +70,7 @@ param(
     [string]$ParentPath,
     [string]$ProjectName,
     [string]$Description = "",
-    [ValidateSet("web-frontend", "backend-api", "fullstack", "cli-library", "infrastructure")]
+    [ValidateSet("web-frontend", "backend-api", "fullstack", "cli-library", "infrastructure", "power-platform")]
     [string]$ProjectType = "backend-api",
     [string]$PrimaryLanguage,
     [string]$Framework,
@@ -816,8 +816,9 @@ if (-not $NonInteractive) {
     Write-Host "    3. fullstack       - Combined frontend + backend" -ForegroundColor Gray
     Write-Host "    4. cli-library     - CLI tools or packages" -ForegroundColor Gray
     Write-Host "    5. infrastructure  - Terraform, Docker, K8s" -ForegroundColor Gray
+    Write-Host "    6. power-platform  - Power Apps, Automate, Dataverse, PCF" -ForegroundColor Gray
     Write-Host ""
-    $ProjectType = Get-UserInput -Prompt "Project type" -Default "backend-api" -ValidOptions @("web-frontend", "backend-api", "fullstack", "cli-library", "infrastructure")
+    $ProjectType = Get-UserInput -Prompt "Project type" -Default "backend-api" -ValidOptions @("web-frontend", "backend-api", "fullstack", "cli-library", "infrastructure", "power-platform")
 
     # --- Language selection ---
     Write-Host ""
@@ -844,10 +845,11 @@ if (-not $NonInteractive) {
     Write-Host ""
 
     $defaultLang = switch ($ProjectType) {
-        "web-frontend"   { "typescript" }
-        "fullstack"      { "typescript" }
-        "infrastructure" { "python" }
-        default          { "typescript" }
+        "web-frontend"    { "typescript" }
+        "fullstack"       { "typescript" }
+        "infrastructure"  { "python" }
+        "power-platform"  { "typescript" }
+        default           { "typescript" }
     }
 
     $PrimaryLanguage = Get-UserInput -Prompt "Primary language" -Default $defaultLang -ValidOptions $validLangs

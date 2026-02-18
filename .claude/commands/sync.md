@@ -130,7 +130,7 @@ git commit -m "chore: sync Claude Code configuration from template"
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `-TargetPath` | string | Path to the target codebase |
-| `-ProjectType` | string | web-frontend, backend-api, fullstack, cli-library, infrastructure |
+| `-ProjectType` | string | web-frontend, backend-api, fullstack, cli-library, infrastructure, power-platform |
 | `-PrimaryLanguage` | string | typescript, python, csharp, go, java, rust, javascript |
 | `-Framework` | string | react, nextjs, fastapi, express, etc. |
 | `-DevFrameworks` | string[] | prp, harness, speckit, spark, worktree |

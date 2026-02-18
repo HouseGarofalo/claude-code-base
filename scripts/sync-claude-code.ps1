@@ -16,7 +16,7 @@
     Path to the target codebase to sync Claude Code files to.
 
 .PARAMETER ProjectType
-    Type of project: web-frontend, backend-api, fullstack, cli-library, infrastructure.
+    Type of project: web-frontend, backend-api, fullstack, cli-library, infrastructure, power-platform.
 
 .PARAMETER PrimaryLanguage
     Primary language: typescript, python, csharp, go, java, rust, javascript.
@@ -58,7 +58,7 @@ param(
     [Parameter(Mandatory = $false)]
     [string]$TargetPath,
 
-    [ValidateSet("web-frontend", "backend-api", "fullstack", "cli-library", "infrastructure")]
+    [ValidateSet("web-frontend", "backend-api", "fullstack", "cli-library", "infrastructure", "power-platform")]
     [string]$ProjectType,
 
     [string]$PrimaryLanguage,
@@ -1233,9 +1233,10 @@ function Invoke-ProjectTypeWizard {
     Write-Host "    3. fullstack       - Combined frontend + backend" -ForegroundColor Gray
     Write-Host "    4. cli-library     - CLI tools or packages" -ForegroundColor Gray
     Write-Host "    5. infrastructure  - Terraform, Docker, K8s" -ForegroundColor Gray
+    Write-Host "    6. power-platform  - Power Apps, Automate, Dataverse, PCF" -ForegroundColor Gray
     Write-Host ""
 
-    return Get-UserInput -Prompt "Project type" -Default "backend-api" -ValidOptions @("web-frontend", "backend-api", "fullstack", "cli-library", "infrastructure")
+    return Get-UserInput -Prompt "Project type" -Default "backend-api" -ValidOptions @("web-frontend", "backend-api", "fullstack", "cli-library", "infrastructure", "power-platform")
 }
 
 function Invoke-LanguageWizard {
@@ -1266,10 +1267,11 @@ function Invoke-LanguageWizard {
     Write-Host ""
 
     $defaultLang = switch ($ProjectType) {
-        "web-frontend"   { "typescript" }
-        "fullstack"      { "typescript" }
-        "infrastructure" { "python" }
-        default          { "typescript" }
+        "web-frontend"    { "typescript" }
+        "fullstack"       { "typescript" }
+        "infrastructure"  { "python" }
+        "power-platform"  { "typescript" }
+        default           { "typescript" }
     }
 
     $lang = Get-UserInput -Prompt "Primary language" -Default $defaultLang -ValidOptions $validLangs
