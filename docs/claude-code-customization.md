@@ -2,7 +2,7 @@
 
 # Claude Code Customization Guide
 
-> **Last Updated**: 2026-01-23 | **Status**: Final
+> **Last Updated**: 2026-02-18 | **Status**: Final
 
 How to customize the Claude Code Base template for your specific project needs.
 

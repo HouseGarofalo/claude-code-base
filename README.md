@@ -34,12 +34,16 @@ Interactive wizard that creates tailored projects based on your choices:
 - Writes a `template_profile` to `.claude/config.yaml` for future sync/update tracking
 - Pre-commit hooks for security scanning, Git configuration, optional GitHub repo and Archon integration
 
-### Sync Functionality (`sync-claude-code.ps1`)
+### Intelligent Sync Wizard (`sync-claude-code.ps1` v3.0)
 
-Keep projects synchronized with the base template:
-- **Selective sync**: reads `template_profile` to sync only skills/commands matching your project
-- **Legacy support**: falls back to full sync for projects without a profile
-- Pull latest configurations and best practices with automatic backup
+Additive-only sync with interactive wizard for existing projects:
+- **Never overwrites** CLAUDE.md or README.md - only adds missing sections and fills placeholders
+- **Wizard-driven**: prompts for project type, language, framework when not detected
+- **Global dedup**: skips skills covered by global Claude Code plugins or `~/.claude/skills/`
+- **Plugin-aware**: reads `plugin-skill-map.json` to avoid redundant skill installation
+- **Profile detection**: reads existing `template_profile` from `.claude/config.yaml`
+- **DryRun preview**: see all proposed changes before applying
+- Automatic backup of modified files to `.claude-backup/`
 
 ### Update Functionality (`update-project.ps1`)
 
@@ -102,9 +106,12 @@ claude-code-base/
 │   └── reference/             # Reference documentation
 ├── mcp-servers/               # MCP server implementations
 │   └── crawl4ai-rag/          # Web crawling + Vector/Graph RAG
+├── templates/                  # Configuration templates
+│   ├── manifest.json           # Skill/command group definitions
+│   └── plugin-skill-map.json   # Plugin-to-skill coverage map
 ├── scripts/                    # Setup and maintenance scripts
 │   ├── setup-claude-code-project.ps1
-│   ├── sync-claude-code.ps1
+│   ├── sync-claude-code.ps1    # v3.0 intelligent wizard sync
 │   └── validate-claude-code.ps1
 ├── docs/                       # Documentation
 │   ├── setup-guide.md

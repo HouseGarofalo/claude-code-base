@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Plugin to Skill Coverage Map",
+  "description": "Maps Claude Code global plugins to the local skills they functionally cover. Used by sync-claude-code.ps1 to skip redundant skill installation.",
+  "version": "1.0.0",
+
+  "plugins": {
+    "code-review": {
+      "label": "Code Review Plugin",
+      "covers": [
+        { "skill": "code-review", "partial": false, "note": "Plugin provides full code review capability" },
+        { "skill": "code-review-mode", "partial": false, "note": "Plugin includes review mode functionality" }
+      ]
+    },
+    "code-simplifier": {
+      "label": "Code Simplifier Plugin",
+      "covers": [
+        { "skill": "code-simplifier-agent", "partial": false, "note": "Plugin provides full code simplification agent" }
+      ]
+    },
+    "pr-review-toolkit": {
+      "label": "PR Review Toolkit Plugin",
+      "covers": [
+        { "skill": "code-reviewer-agent", "partial": false, "note": "Plugin includes comprehensive code reviewer agent" }
+      ]
+    },
+    "frontend-design": {
+      "label": "Frontend Design Plugin",
+      "covers": [
+        { "skill": "frontend-architect-agent", "partial": true, "note": "Plugin covers design aspects; local skill adds implementation patterns" }
+      ]
+    },
+    "playwright": {
+      "label": "Playwright Plugin",
+      "covers": [
+        { "skill": "playwright-mcp", "partial": false, "note": "Plugin provides full Playwright browser automation" },
+        { "skill": "web-automation", "partial": true, "note": "Plugin covers browser automation; local skill adds broader web automation patterns" }
+      ]
+    },
+    "security-guidance": {
+      "label": "Security Guidance Plugin",
+      "covers": [
+        { "skill": "security-auditor-agent", "partial": true, "note": "Plugin provides guidance; local skill adds audit workflows and checklists" },
+        { "skill": "security-scanner", "partial": true, "note": "Plugin provides guidance; local skill adds scanner tool integration" }
+      ]
+    },
+    "agent-sdk-dev": {
+      "label": "Agent SDK Dev Plugin",
+      "covers": [
+        { "skill": "claude-agent-sdk", "partial": false, "note": "Plugin provides full Agent SDK development support" }
+      ]
+    },
+    "feature-dev": {
+      "label": "Feature Dev Plugin",
+      "covers": [
+        { "skill": "architect-reviewer-agent", "partial": true, "note": "Plugin includes code-architect; local skill adds review workflows" },
+        { "skill": "background-researcher-agent", "partial": true, "note": "Plugin includes code-explorer; local skill adds broader research patterns" }
+      ]
+    },
+    "hookify": {
+      "label": "Hookify Plugin",
+      "covers": []
+    }
+  },
+
+  "globalSkillPatterns": {
+    "description": "Patterns for matching global skills installed in ~/.claude/skills/. If a global skill name matches one of these patterns, the corresponding local skill is considered covered.",
+    "exactMatch": true,
+    "note": "Global skills are matched by directory name. A global skill with the same name as a local skill fully covers it."
+  }
+}

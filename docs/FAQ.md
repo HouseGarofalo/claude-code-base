@@ -2,7 +2,7 @@
 
 # Frequently Asked Questions
 
-> **Last Updated**: 2026-01-23 | **Status**: Final
+> **Last Updated**: 2026-02-18 | **Status**: Final
 
 Common questions and troubleshooting for Claude Code Base.
 
@@ -326,26 +326,60 @@ npx --version
 
 ### How do I sync to an existing project?
 
+The intelligent sync wizard (v3.0) provides additive-only sync:
+
 ```powershell
 # From claude-code-base directory
 .\scripts\sync-claude-code.ps1 -TargetPath "E:\Repos\existing-project"
 ```
 
-This copies:
-- `.claude/` directory
-- `.vscode/` directory
-- `CLAUDE.md`
-- `PRPs/` directory
-- `.gitattributes`
-- `.pre-commit-config.yaml`
+The wizard interactively guides you through project type, language, framework selection and shows a detailed preview of all proposed changes before applying anything.
+
+Key behaviors:
+- **Never overwrites** CLAUDE.md or README.md
+- Only adds missing sections/placeholders to CLAUDE.md
+- Only installs skills relevant to your project type
+- Skips skills covered by global plugins or `~/.claude/skills/`
+- Creates backups before any modifications
+
+### What parameters does the sync wizard accept?
+
+```powershell
+# Preview only (no changes)
+.\scripts\sync-claude-code.ps1 -TargetPath "..." -DryRun
+
+# Pre-specify configuration (skips wizard prompts)
+.\scripts\sync-claude-code.ps1 -TargetPath "..." `
+    -ProjectType "backend-api" -PrimaryLanguage "python" -Framework "fastapi"
+
+# Add extra skill groups
+.\scripts\sync-claude-code.ps1 -TargetPath "..." `
+    -AdditionalSkillGroups @("ai_ml", "cloud_infra")
+
+# Non-interactive
+.\scripts\sync-claude-code.ps1 -TargetPath "..." -Force
+
+# Skip backups
+.\scripts\sync-claude-code.ps1 -TargetPath "..." -NoBackup
+```
 
 ### What files are backed up during sync?
 
-Existing files are backed up to `.claude-backup/` with timestamps. To skip backups:
+Modified files are backed up to `.claude-backup/` with timestamps before changes are applied. The sync wizard only creates backups for files it actually modifies (CLAUDE.md when sections are added, scripts when they're updated).
 
-```powershell
-.\scripts\sync-claude-code.ps1 -TargetPath "..." -NoBackup
-```
+### How does global plugin deduplication work?
+
+The sync reads `~/.claude/settings.json` for enabled plugins and `templates/plugin-skill-map.json` for the mapping. For example, if you have the `code-review` plugin enabled globally, the `code-review` and `code-review-mode` local skills are skipped. Skills with partial overlap (e.g., `frontend-architect-agent` with the `frontend-design` plugin) are still recommended but the wizard shows a note.
+
+### How does CLAUDE.md smart merge work?
+
+When syncing to a project with an existing CLAUDE.md:
+1. Both files are parsed into `##` sections
+2. Missing sections are identified (template sections not in target)
+3. Conditional sections (PRP/Harness/SpecKit) are filtered by dev framework selection
+4. Missing sections are inserted at the correct canonical position
+5. Unfilled `[PLACEHOLDER]` patterns are auto-detected and prompted
+6. **Existing content is never modified or overwritten**
 
 ### How do I migrate from github-copilot-base?
 

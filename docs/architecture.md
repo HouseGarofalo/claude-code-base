@@ -2,7 +2,7 @@
 
 # Template Architecture
 
-> **Last Updated**: 2026-01-23 | **Status**: Final
+> **Last Updated**: 2026-02-18 | **Status**: Final
 
 This document describes the structure and components of the Claude Code Base template.
 
@@ -131,9 +131,16 @@ claude-code-base/
 │       ├── issue-investigation-template.md
 │       └── implementation-report-template.md
 │
+├── templates/                          # Configuration templates
+│   ├── manifest.json                   # Skill/command group definitions
+│   ├── plugin-skill-map.json           # Plugin-to-skill coverage map
+│   ├── claude-md/                      # CLAUDE.md templates
+│   ├── readme/                         # README templates by project type
+│   └── gitignore/                      # Language-specific gitignore
+│
 ├── scripts/                            # PowerShell scripts
-│   ├── setup-claude-code-project.ps1   # Project wizard
-│   ├── sync-claude-code.ps1            # Sync utility
+│   ├── setup-claude-code-project.ps1   # New project wizard
+│   ├── sync-claude-code.ps1            # Intelligent sync wizard (v3.0)
 │   └── validate-claude-code.ps1        # Validation utility
 │
 ├── docs/                               # Documentation
@@ -258,15 +265,28 @@ Feature Idea
 └─────────────────┘
 ```
 
+### Templates
+
+Configuration templates that drive the setup and sync wizards:
+
+| File | Purpose |
+|------|---------|
+| `templates/manifest.json` | Defines skill groups, command groups, project type mappings, language/framework options |
+| `templates/plugin-skill-map.json` | Maps global Claude Code plugins to the local skills they cover (for deduplication) |
+| `templates/claude-md/CLAUDE.md.template` | CLAUDE.md template with conditional sections for PRP/Harness/SpecKit |
+| `templates/readme/` | Project-type-specific README templates |
+| `templates/gitignore/` | Language-specific gitignore templates |
+
 ### Scripts
 
 PowerShell scripts for project management:
 
 | Script | Purpose |
 |--------|---------|
-| `setup-claude-code-project.ps1` | Interactive project wizard |
-| `sync-claude-code.ps1` | Sync template to existing project |
-| `validate-claude-code.ps1` | Validate configuration |
+| `setup-claude-code-project.ps1` | Interactive wizard for creating new projects from template |
+| `sync-claude-code.ps1` (v3.0) | Intelligent wizard-based additive sync for existing projects |
+| `validate-claude-code.ps1` | Validate configuration meets standards |
+| `update-project.ps1` | Selective component updates from template |
 
 ---
 

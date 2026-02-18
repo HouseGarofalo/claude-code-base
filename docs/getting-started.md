@@ -2,7 +2,7 @@
 
 # Getting Started with Claude Code Base
 
-> **Last Updated**: 2026-01-23 | **Status**: Final
+> **Last Updated**: 2026-02-18 | **Status**: Final
 
 This guide walks you through setting up a new project using the Claude Code Base template.
 
@@ -312,7 +312,7 @@ manage_task("create",
 
 ## Syncing to Existing Projects
 
-To add Claude Code Base configuration to an existing project:
+The intelligent sync wizard (v3.0) provides additive-only sync to existing projects. It **never overwrites** your CLAUDE.md or README.md.
 
 ### Using the Sync Script
 
@@ -320,56 +320,107 @@ To add Claude Code Base configuration to an existing project:
 # Navigate to claude-code-base
 cd path/to/claude-code-base
 
-# Run sync
+# Run the intelligent sync wizard
 .\scripts\sync-claude-code.ps1 -TargetPath "E:\Repos\existing-project"
 ```
+
+### How It Works (10-Step Flow)
+
+The sync wizard walks through these steps:
+
+| Step | What Happens |
+|------|-------------|
+| **0. Prerequisites** | Validates git, loads manifest.json and plugin-skill-map.json |
+| **1. Load State** | Scans target for existing skills, commands, CLAUDE.md, config.yaml |
+| **2. Detect Config** | If `template_profile` exists, shows detected values for confirmation |
+| **3. Wizard** | Interactive prompts for project type, language, framework, dev frameworks, additional skill groups |
+| **4. Calculate Delta** | Expands selections into full candidate skill/command list via manifest |
+| **5. Global Dedup** | Reads `~/.claude/settings.json` for plugins, scans `~/.claude/skills/`. Categorizes each skill as: to-install, skip-plugin, partial-plugin, skip-global, skip-exists |
+| **6. CLAUDE.md Analysis** | Parses into sections, finds missing ones, scans for unfilled `[PLACEHOLDER]` patterns, auto-detects values (git remote, dir name, date), prompts for rest |
+| **7. Preview** | Shows categorized diff of all proposed changes |
+| **8. Approval** | User confirms. DryRun exits here. Force skips the prompt |
+| **9. Execute** | Copies approved skills/commands, merges CLAUDE.md (additive), creates config files, writes template_profile |
+| **10. Summary** | Statistics, dedup savings, next steps |
 
 ### Sync Options
 
 ```powershell
-# Preview what would be synced (no changes)
+# Preview all changes (no modifications)
 .\scripts\sync-claude-code.ps1 -TargetPath "E:\Repos\project" -DryRun
+
+# Pre-specify project configuration
+.\scripts\sync-claude-code.ps1 -TargetPath "E:\Repos\project" `
+    -ProjectType "backend-api" `
+    -PrimaryLanguage "python" `
+    -Framework "fastapi"
+
+# Include additional skill groups
+.\scripts\sync-claude-code.ps1 -TargetPath "E:\Repos\project" `
+    -AdditionalSkillGroups @("ai_ml", "cloud_infra")
+
+# Include dev frameworks
+.\scripts\sync-claude-code.ps1 -TargetPath "E:\Repos\project" `
+    -DevFrameworks @("prp", "harness")
+
+# Non-interactive (requires params or existing profile)
+.\scripts\sync-claude-code.ps1 -TargetPath "E:\Repos\project" -Force
 
 # Skip backup creation
 .\scripts\sync-claude-code.ps1 -TargetPath "E:\Repos\project" -NoBackup
-
-# Force (no confirmation prompts)
-.\scripts\sync-claude-code.ps1 -TargetPath "E:\Repos\project" -Force
 ```
 
-### What Gets Synced
+### What Gets Synced (and What Doesn't)
 
-**If your project has a `template_profile`** (created by the setup wizard v2.0):
-- Core `.claude/` config files (config.yaml, settings.json, hooks, context)
-- `.vscode/` directory (settings, MCP config)
-- **Only skills matching your declared `skill_groups`**
-- **Only commands matching your declared `command_groups`**
-- `.gitattributes` and `.pre-commit-config.yaml`
-- Sync, validation, and update scripts
-- `PRPs/` directory (only if PRP dev framework was selected)
+| File / Directory | Behavior |
+|-----------------|----------|
+| **CLAUDE.md** | Additive only - adds missing sections, fills placeholders, never modifies existing content |
+| **README.md** | Never touched |
+| **.claude/config.yaml** | Appends/updates `template_profile` section only |
+| **.claude/settings.json** | Never overwritten |
+| **.claude/hooks/, context/** | Copies only files that don't exist |
+| **.claude/SESSION_KNOWLEDGE.md, DEVELOPMENT_LOG.md** | Created only if missing |
+| **.vscode/extensions.json** | Created only if missing |
+| **.vscode/settings.json** | Never overwritten |
+| **.gitattributes, .pre-commit-config.yaml** | Created only if missing |
+| **scripts/sync-claude-code.ps1, validate-claude-code.ps1, update-project.ps1** | Always updated (self-update) |
+| **PRPs/** | Only if PRP dev framework selected AND no PRPs/ directory exists |
+| **Skills** | Only relevant ones not already installed, not covered by global plugins/skills |
+| **Commands** | Only relevant ones not already installed |
 
-**If your project has no `template_profile`** (legacy projects):
-- Full `.claude/` directory (all skills, commands, config)
-- `.vscode/` directory
-- `CLAUDE.md`
-- `PRPs/` directory
-- `.gitattributes` and `.pre-commit-config.yaml`
-- Sync and validation scripts
+### Global Plugin Deduplication
 
-### After Syncing
+The sync wizard reads your global Claude Code configuration to avoid installing redundant skills:
 
-1. Update placeholders in CLAUDE.md (legacy projects only)
-2. Configure `.claude/config.yaml` (legacy projects only)
-3. Review and customize MCP servers
-4. Run validation: `.\scripts\validate-claude-code.ps1`
+- **Global plugins** (`~/.claude/settings.json`): If a plugin (e.g., `code-review`, `playwright`) already covers a local skill, it's skipped
+- **Partial overlap**: When a plugin partially covers a skill, the wizard recommends installing the local skill but shows a note about the overlap
+- **Global skills** (`~/.claude/skills/`): Skills already installed globally are skipped
+- **Existing skills**: Skills already in the target project are never re-installed
+
+The mapping is defined in `templates/plugin-skill-map.json`.
+
+### CLAUDE.md Smart Merge
+
+When syncing to a project that already has a CLAUDE.md:
+
+1. Both files are parsed into `##` sections
+2. Template conditional sections (`<!-- IF PRP -->` etc.) are filtered based on selected dev frameworks
+3. Missing sections are identified and inserted at the correct canonical position
+4. Unfilled `[PLACEHOLDER]` patterns are detected
+5. Auto-detectable values (git remote URL, directory name, date) are filled automatically
+6. Remaining placeholders are prompted via wizard
+7. **Existing content is never modified**
 
 ### Adding Skills Later
 
-To add skills from the template that weren't included in your initial setup:
+Re-run the sync wizard with different options:
 
-1. Copy the desired skill folder from the template's `.claude/skills/` to your project
-2. Update `skill_groups` in your `.claude/config.yaml` template_profile to include the new group
-3. Future syncs will include the new skills automatically
+```powershell
+# Add AI/ML skills to an existing project
+.\scripts\sync-claude-code.ps1 -TargetPath "E:\Repos\project" `
+    -AdditionalSkillGroups @("ai_ml")
+```
+
+The wizard will detect your existing configuration and only install the new skills. Skills already present in the project, globally, or covered by plugins are skipped automatically.
 
 ---
 

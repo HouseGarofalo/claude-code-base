@@ -2,7 +2,7 @@
 
 # MCP Server Dependencies
 
-> **Last Updated**: 2026-01-23 | **Status**: Final
+> **Last Updated**: 2026-02-18 | **Status**: Final
 
 Guide to setting up and configuring MCP (Model Context Protocol) servers for Claude Code Base.
 

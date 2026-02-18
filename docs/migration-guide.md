@@ -2,7 +2,7 @@
 
 # Migration Guide: From github-copilot-base to claude-code-base
 
-> **Last Updated**: 2026-01-23 | **Status**: Final
+> **Last Updated**: 2026-02-18 | **Status**: Final
 
 This guide helps you migrate projects from the github-copilot-base template to claude-code-base.
 
@@ -115,14 +115,21 @@ While both templates provide AI-assisted development configuration, Claude Code 
 Copy-Item -Recurse .github .github.backup
 ```
 
-### Step 2: Run Sync Script
+### Step 2: Run the Intelligent Sync Wizard
 
 ```powershell
 # From claude-code-base directory
 .\scripts\sync-claude-code.ps1 -TargetPath "E:\Repos\your-project"
 ```
 
-This adds Claude Code Base files without removing existing GitHub configuration.
+The sync wizard (v3.0) interactively guides you through project type, language, framework, and dev framework selection. It then:
+- **Adds** only relevant skills and commands (based on your selections)
+- **Skips** skills already covered by global plugins or global skills
+- **Merges** missing sections into your CLAUDE.md (additive-only, never overwrites)
+- **Fills** placeholders with auto-detected values (git remote, directory name, date)
+- **Previews** all proposed changes before applying
+
+See [Getting Started - Syncing to Existing Projects](./getting-started.md#syncing-to-existing-projects) for full details.
 
 ### Step 3: Migrate Instructions
 
@@ -329,9 +336,9 @@ Common fixes:
 
 ### How do I handle merge conflicts?
 
-If syncing creates conflicts:
-1. Keep your project-specific customizations
-2. Adopt new Claude Code Base structure
+The v3.0 sync wizard is additive-only and should not create conflicts. It never modifies existing content in CLAUDE.md or README.md. If you encounter unexpected issues:
+1. Re-run with `-DryRun` to preview all changes first
+2. Keep your project-specific customizations
 3. Merge custom rules into CLAUDE.md format
 
 ---

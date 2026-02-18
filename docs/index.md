@@ -115,8 +115,8 @@ your-project/
 
 ## Version Information
 
-- **Template Version**: 1.0.0
-- **Last Updated**: 2026-01-23
+- **Template Version**: 3.0.0
+- **Last Updated**: 2026-02-18
 - **Claude Code Compatibility**: Latest
 
 ---

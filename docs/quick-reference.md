@@ -2,7 +2,7 @@
 
 # Quick Reference
 
-> **Last Updated**: 2026-01-23 | **Status**: Final
+> **Last Updated**: 2026-02-18 | **Status**: Final
 
 Command cheat sheet for Claude Code Base.
 
@@ -67,20 +67,32 @@ Command cheat sheet for Claude Code Base.
 .\scripts\setup-claude-code-project.ps1 -SkipGitHub -SkipArchon
 ```
 
-### Sync Utility
+### Sync Wizard (v3.0)
 
 ```powershell
-# Sync to existing project
+# Interactive wizard sync to existing project
 .\scripts\sync-claude-code.ps1 -TargetPath "E:\Repos\my-project"
 
-# Preview changes (dry run)
+# Preview all changes (dry run)
 .\scripts\sync-claude-code.ps1 -TargetPath "..." -DryRun
+
+# Pre-specify project config
+.\scripts\sync-claude-code.ps1 -TargetPath "..." `
+    -ProjectType "backend-api" -PrimaryLanguage "python" -Framework "fastapi"
+
+# Include additional skill groups
+.\scripts\sync-claude-code.ps1 -TargetPath "..." `
+    -AdditionalSkillGroups @("ai_ml", "cloud_infra")
+
+# Include dev frameworks
+.\scripts\sync-claude-code.ps1 -TargetPath "..." `
+    -DevFrameworks @("prp", "harness")
+
+# Non-interactive (requires params or existing profile)
+.\scripts\sync-claude-code.ps1 -TargetPath "..." -Force
 
 # Skip backup
 .\scripts\sync-claude-code.ps1 -TargetPath "..." -NoBackup
-
-# Force (no prompts)
-.\scripts\sync-claude-code.ps1 -TargetPath "..." -Force
 ```
 
 ### Validation
