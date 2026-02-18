@@ -327,10 +327,9 @@ function Get-GlobalSettings {
     .SYNOPSIS
         Reads ~/.claude/settings.json and returns enabled plugins list.
     #>
-    $paths = @(
-        (Join-Path $env:USERPROFILE ".claude\settings.json"),
-        (Join-Path $env:HOME ".claude\settings.json")
-    )
+    $paths = @()
+    if ($env:USERPROFILE) { $paths += Join-Path $env:USERPROFILE ".claude\settings.json" }
+    if ($env:HOME -and $env:HOME -ne $env:USERPROFILE) { $paths += Join-Path $env:HOME ".claude\settings.json" }
 
     foreach ($p in $paths) {
         if ($p -and (Test-Path $p -ErrorAction SilentlyContinue)) {
@@ -341,6 +340,7 @@ function Get-GlobalSettings {
                 # Check for enabled plugins in various known formats
                 if ($settings.PSObject.Properties.Name -contains "plugins") {
                     foreach ($plugin in $settings.plugins) {
+                        if ($null -eq $plugin) { continue }
                         if ($plugin -is [string]) {
                             $plugins += $plugin
                         }
@@ -353,12 +353,13 @@ function Get-GlobalSettings {
                 }
 
                 # Also check enabledPlugins
-                if ($settings.PSObject.Properties.Name -contains "enabledPlugins") {
-                    $plugins += @($settings.enabledPlugins)
+                if ($settings.PSObject.Properties.Name -contains "enabledPlugins" -and $settings.enabledPlugins) {
+                    $plugins += @($settings.enabledPlugins | Where-Object { $_ })
                 }
 
+                $plugins = @($plugins | Where-Object { $_ } | Select-Object -Unique)
                 return @{
-                    Plugins = ($plugins | Select-Object -Unique)
+                    Plugins = $plugins
                     Path    = $p
                 }
             }
@@ -376,22 +377,21 @@ function Get-GlobalSkills {
     .SYNOPSIS
         Scans ~/.claude/skills/ for globally installed skills.
     #>
-    $paths = @(
-        (Join-Path $env:USERPROFILE ".claude\skills"),
-        (Join-Path $env:HOME ".claude\skills")
-    )
+    $paths = @()
+    if ($env:USERPROFILE) { $paths += Join-Path $env:USERPROFILE ".claude\skills" }
+    if ($env:HOME -and $env:HOME -ne $env:USERPROFILE) { $paths += Join-Path $env:HOME ".claude\skills" }
 
     $globalSkills = @()
     foreach ($p in $paths) {
         if ($p -and (Test-Path $p -ErrorAction SilentlyContinue)) {
             $dirs = Get-ChildItem -Path $p -Directory -ErrorAction SilentlyContinue
             foreach ($dir in $dirs) {
-                $globalSkills += $dir.Name
+                if ($dir.Name) { $globalSkills += $dir.Name }
             }
         }
     }
 
-    return ($globalSkills | Select-Object -Unique)
+    return @($globalSkills | Where-Object { $_ } | Select-Object -Unique)
 }
 
 function Get-ExistingSkills {
@@ -401,11 +401,12 @@ function Get-ExistingSkills {
     #>
     param([string]$TargetPath)
 
+    if (-not $TargetPath) { return @() }
     $skillsDir = Join-Path $TargetPath ".claude\skills"
     if (-not (Test-Path $skillsDir)) { return @() }
 
     $dirs = Get-ChildItem -Path $skillsDir -Directory -ErrorAction SilentlyContinue
-    return @($dirs | ForEach-Object { $_.Name })
+    return @($dirs | ForEach-Object { $_.Name } | Where-Object { $_ })
 }
 
 function Get-ExistingCommands {
@@ -415,11 +416,12 @@ function Get-ExistingCommands {
     #>
     param([string]$TargetPath)
 
+    if (-not $TargetPath) { return @() }
     $cmdsDir = Join-Path $TargetPath ".claude\commands"
     if (-not (Test-Path $cmdsDir)) { return @() }
 
     $files = Get-ChildItem -Path $cmdsDir -File -Filter "*.md" -ErrorAction SilentlyContinue
-    return @($files | ForEach-Object { $_.Name })
+    return @($files | ForEach-Object { $_.Name } | Where-Object { $_ })
 }
 
 # ============================================================================
@@ -1562,10 +1564,10 @@ $skillResult = Get-SelectedSkills -Manifest $Manifest -ProjectType $ProjectType 
 
 $commandResult = Get-SelectedCommands -Manifest $Manifest -DevFrameworks $DevFrameworks
 
-$candidateSkills = $skillResult.Skills
-$skillGroups = $skillResult.Groups
-$candidateCommands = $commandResult.Commands
-$commandGroups = $commandResult.Groups
+$candidateSkills = @($skillResult.Skills | Where-Object { $_ })
+$skillGroups = @($skillResult.Groups | Where-Object { $_ })
+$candidateCommands = @($commandResult.Commands | Where-Object { $_ })
+$commandGroups = @($commandResult.Groups | Where-Object { $_ })
 
 Write-Status "Candidate skills:  $($candidateSkills.Count) (from groups: $($skillGroups -join ', '))" "INFO"
 Write-Status "Candidate commands: $($candidateCommands.Count) (from groups: $($commandGroups -join ', '))" "INFO"
